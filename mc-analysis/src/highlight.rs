@@ -1,6 +1,5 @@
-use std::fmt::write;
-
 use mc_source::{FileId, SourceDatabase, TextRange};
+use mc_syntax::ast::SyntaxKind;
 
 #[derive(Debug, Clone)]
 pub struct Highlight {
@@ -17,32 +16,20 @@ pub struct HighlightToken {
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum HighlightKind {
-  /// Class names and references.
-  Class,
-
-  /// Trait names and references.
-  Trait,
-
-  /// Object names and references.
-  Object,
-
-  /// Function calls and definitions.
-  Function,
-
-  /// Keywords like `class` or `val`.
+  /// Special JSON keys.
   Keyword,
 
-  /// Number literals.
+  /// Unkown JSON keys.
+  UnknownKey,
+
+  /// Numbers.
   Number,
 
-  // String literals.
-  String,
+  /// Booleans.
+  Boolean,
 
-  /// Parameters in function definitions, like the `x` in `def foo(x: Int)`.
-  Parameter,
-
-  /// Type references, like the `Int` in `val x: Int = 92` or `def foo(x: Int)`.
-  Type,
+  /// Null.
+  Null,
 
   /// Local variables.
   // Keep last!
@@ -75,8 +62,15 @@ impl Highlight {
       let range = node.text_range();
 
       let kind = match node.kind() {
-        // TODO
-        _ => HighlightKind::Variable,
+        SyntaxKind::KEY => match node.text().to_string().as_str() {
+          // FIXME: Need HIR!
+          "\"parent\"" | "\"textures\"" => HighlightKind::Keyword,
+          _ => HighlightKind::UnknownKey,
+        },
+        SyntaxKind::NUMBER => HighlightKind::Number,
+        SyntaxKind::BOOLEAN => HighlightKind::Boolean,
+        SyntaxKind::NULL => HighlightKind::Null,
+        _ => continue,
       };
 
       hl.hl.tokens.push(HighlightToken {

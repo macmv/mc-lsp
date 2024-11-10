@@ -170,9 +170,7 @@ struct TokenModifier {
 impl TokenModifier {
   pub fn all() -> Vec<SemanticTokenModifier> { vec![SemanticTokenModifier::new("static")] }
 
-  pub fn from_kind(kind: HighlightKind) -> Self {
-    Self { stat: matches!(kind, HighlightKind::Object) }
-  }
+  pub fn from_kind(_: HighlightKind) -> Self { Self { stat: false } }
 
   pub fn encode(&self) -> u32 {
     let mut bits = 0;
@@ -188,15 +186,11 @@ impl TokenModifier {
 pub fn semantic_tokens_legend() -> lsp_types::SemanticTokensLegend {
   fn token_type(kind: HighlightKind) -> SemanticTokenType {
     match kind {
-      HighlightKind::Class => SemanticTokenType::new("class"),
-      HighlightKind::Trait => SemanticTokenType::new("interface"),
-      HighlightKind::Object => SemanticTokenType::new("class"),
-      HighlightKind::Function => SemanticTokenType::new("function"),
       HighlightKind::Keyword => SemanticTokenType::new("keyword"),
-      HighlightKind::Number => SemanticTokenType::new("number"),
-      HighlightKind::String => SemanticTokenType::new("string"),
-      HighlightKind::Parameter => SemanticTokenType::new("parameter"),
-      HighlightKind::Type => SemanticTokenType::new("type"),
+      HighlightKind::UnknownKey => SemanticTokenType::new("string"),
+      HighlightKind::Number | HighlightKind::Boolean | HighlightKind::Null => {
+        SemanticTokenType::new("number")
+      }
       HighlightKind::Variable => SemanticTokenType::new("variable"),
     }
   }

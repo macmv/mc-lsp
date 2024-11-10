@@ -365,6 +365,7 @@ dependencies = [
  "line-index",
  "log",
  "mc-source",
+ "mc-syntax",
  "mc-test",
  "salsa",
 ]
