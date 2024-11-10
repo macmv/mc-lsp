@@ -1,13 +1,16 @@
 [workspace]
 resolver = "2"
 members = [
-  "mc-lsp",
-  "mc-analysis",
-  "mc-source",
   "mc-test",
+  "mc-build",
+  "mc-source",
+  "mc-syntax",
+  "mc-analysis",
+  "mc-lsp",
 ]
 
 [workspace.dependencies]
+mc-test = { path = "mc-test" }
+mc-build = { path = "mc-build" }
 mc-source = { path = "mc-source" }
 mc-analysis = { path = "mc-analysis" }
-mc-test = { path = "mc-test" }
