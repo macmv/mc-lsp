@@ -111,9 +111,7 @@ impl Parser<'_> {
   fn parse_elements(&mut self, elements: ast::Value) {
     if let ast::Value::Array(arr) = elements {
       for item in arr.values() {
-        self.parse_object(item, |p, _, _, value| {
-          p.parse_element(value);
-        });
+        self.parse_element(item);
       }
     }
   }
@@ -123,7 +121,7 @@ impl Parser<'_> {
 
     let obj = self.parse_object(e, |p, _, key, value| match key {
       "from" => element.from = p.parse_pos(value),
-      "to" => element.from = p.parse_pos(value),
+      "to" => element.to = p.parse_pos(value),
       "faces" => element.faces = p.parse_faces(value),
       _ => {}
     });
@@ -178,7 +176,8 @@ impl Parser<'_> {
       }
       "texture" => {
         let Some(texture) = value.as_str() else { return };
-        let node = p.alloc(value, Texture::Reference(texture.to_string()));
+        let Some(name) = texture.strip_prefix("#") else { return };
+        let node = p.alloc(value, Texture::Reference(name.to_string()));
 
         face.texture = node;
       }

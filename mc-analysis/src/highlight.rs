@@ -66,7 +66,7 @@ impl Highlight {
     for (id, node) in model.nodes.iter() {
       match node {
         model::Node::TextureDef(_) => {
-          let element = source_map.textures[&id].tree(&ast);
+          let element = source_map.texture_defs[&id].tree(&ast);
 
           if let Some(key) = element.key() {
             hl.highlight(key, HighlightKind::Variable);
@@ -75,6 +75,11 @@ impl Highlight {
             hl.highlight(value, HighlightKind::Texture);
           }
         }
+        model::Node::Texture(_) => {
+          hl.highlight(source_map.textures[&id].tree(&ast), HighlightKind::Variable);
+        }
+
+        _ => {}
       }
     }
 
