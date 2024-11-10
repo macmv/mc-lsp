@@ -14,5 +14,6 @@ members = [
 mc-test = { path = "mc-test" }
 mc-build = { path = "mc-build" }
 mc-parser = { path = "mc-parser" }
+mc-syntax = { path = "mc-syntax" }
 mc-source = { path = "mc-source" }
 mc-analysis = { path = "mc-analysis" }

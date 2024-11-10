@@ -4,6 +4,8 @@ use std::{
   sync::Arc,
 };
 
+use mc_syntax::Parse;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FileLocation {
   pub file:  FileId,
@@ -48,13 +50,13 @@ pub trait SourceDatabase: std::fmt::Debug {
   fn file_text(&self, file_id: FileId) -> Arc<str>;
 
   /// Parses the file into the syntax tree.
-  fn parse_model(&self, file_id: TypedFileId<Model>) -> <Model as FileType>::Source;
+  fn parse_json(&self, file_id: FileId) -> Parse<mc_syntax::Json>;
 }
 
 pub trait FileType {
   type Source;
 
-  fn parse(text: &str) -> Self::Source;
+  fn parse(text: &str) -> Parse<Self::Source>;
 }
 
 pub struct TypedFileId<T: FileType> {
@@ -95,12 +97,12 @@ impl FileId {
 }
 
 #[derive(Default, Debug)]
-pub struct Model;
+pub struct Json;
 
-impl FileType for Model {
-  type Source = String;
+impl FileType for Json {
+  type Source = mc_syntax::Json;
 
-  fn parse(text: &str) -> Self::Source { text.to_string() }
+  fn parse(text: &str) -> Parse<Self::Source> { mc_syntax::Json::parse(text) }
 }
 
 #[derive(Default, Debug)]
@@ -108,14 +110,11 @@ pub struct Workspace {
   pub files: Vec<FileId>,
 }
 
-fn parse<T: FileType>(db: &dyn SourceDatabase, file_id: FileId) -> T::Source {
+fn parse<T: FileType>(db: &dyn SourceDatabase, file_id: FileId) -> Parse<T::Source> {
   let text = db.file_text(file_id);
   T::parse(&text)
 }
 
-fn parse_model(
-  db: &dyn SourceDatabase,
-  file_id: TypedFileId<Model>,
-) -> <Model as FileType>::Source {
-  parse::<Model>(db, file_id.raw)
+fn parse_json(db: &dyn SourceDatabase, file_id: FileId) -> Parse<<Json as FileType>::Source> {
+  parse::<Json>(db, file_id)
 }

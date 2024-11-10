@@ -1,3 +1,5 @@
+use std::fmt::write;
+
 use mc_source::{FileId, SourceDatabase, TextRange};
 
 #[derive(Debug, Clone)]
@@ -66,6 +68,26 @@ impl Highlight {
     let syntax = ast.syntax_node();
     for node in syntax.descendants() {}
     */
+
+    let tree = db.parse_json(file);
+
+    for node in tree.syntax_node().descendants() {
+      let range = node.text_range();
+
+      let kind = match node.kind() {
+        // TODO
+        _ => HighlightKind::Variable,
+      };
+
+      hl.hl.tokens.push(HighlightToken {
+        range: mc_source::TextRange {
+          start: mc_source::TextSize(range.start().into()),
+          end:   mc_source::TextSize(range.end().into()),
+        },
+        kind,
+        modifierst: 0,
+      });
+    }
 
     hl.hl.tokens.sort_by_key(|t| t.range.start);
 
