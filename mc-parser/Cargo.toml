@@ -1,15 +1,19 @@
 [package]
-name = "mc-syntax"
+name = "mc-parser"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-la-arena = "0.3.1"
-rowan = "0.15.16"
-url = "2.5.0"
+drop_bomb = "0.1.5"
+rowan = "0.15.15"
+thiserror = "1.0.56"
+unicode_categories = "0.1.1"
 
 [build-dependencies]
 mc-build.workspace = true
-mc-parser.workspace = true
+
+[dev-dependencies]
+mc-test.workspace = true
+pretty_assertions = "1.4.0"

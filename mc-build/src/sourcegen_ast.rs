@@ -8,6 +8,7 @@
 use std::{collections::BTreeSet, fmt::Write};
 
 use itertools::Itertools;
+use proc_macro2::{Ident, Punct, Spacing, Span};
 use quote::{format_ident, quote};
 use ungrammar::{Grammar, Rule};
 
@@ -15,6 +16,16 @@ use super::{
   ast_src::{AstEnumSrc, AstNodeSrc, AstSrc, Cardinality, Field},
   sourcegen,
 };
+
+pub fn sourcegen_kinds() {
+  let grammar: Grammar =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/mc.ungram")).parse().unwrap();
+  let ast = lower(&grammar);
+
+  let syntax_kinds = generate_syntax_kinds(&ast);
+  let syntax_kinds_file = sourcegen::project_root().join("mc-parser/src/syntax_kind/generated.rs");
+  sourcegen::ensure_file_contents(syntax_kinds_file.as_path(), &syntax_kinds);
+}
 
 pub fn sourcegen_ast() {
   let grammar = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/mc.ungram")).parse().unwrap();
@@ -328,6 +339,77 @@ fn write_doc_comment(contents: &[String], dest: &mut String) {
   }
 }
 
+fn generate_syntax_kinds(ast: &AstSrc) -> String {
+  let mut punctuation_values = vec![];
+  let mut punctuation = vec![];
+
+  for punct in &["'['", "']'", "'{'", "'}'", ":", ",", "\""] {
+    match *punct {
+      "'['" => punctuation_values.push(quote!('[')),
+      "']'" => punctuation_values.push(quote!(']')),
+      "'{'" => punctuation_values.push(quote!('{')),
+      "'}'" => punctuation_values.push(quote!('}')),
+      "\"" => punctuation_values.push(quote!('"')),
+      _ => {
+        let cs = punct.chars().map(|c| Punct::new(c, Spacing::Joint));
+        punctuation_values.push(quote!(#(#cs)*));
+      }
+    };
+    punctuation.push(Ident::new(&to_upper_snake_case(token_name(punct)), Span::call_site()));
+  }
+
+  let mut tokens: Vec<Ident> = vec![];
+  for tok in &["WHITESPACE", "TRUE", "FALSE"] {
+    let ident = Ident::new(tok, Span::call_site());
+    tokens.push(ident);
+  }
+
+  let mut nodes: Vec<Ident> = vec![];
+  for node in ast.nodes.iter() {
+    nodes.push(Ident::new(&to_upper_snake_case(&node.name), Span::call_site()));
+  }
+
+  let ast = quote! {
+    #![allow(bad_style, missing_docs, unreachable_pub)]
+    /// The kind of syntax node, e.g. `IDENT`, `USE_KW`, or `STRUCT`.
+    #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+    #[repr(u16)]
+    pub enum SyntaxKind {
+      // Technical SyntaxKinds: they appear temporally during parsing,
+      // but never end up in the final tree
+      #[doc(hidden)]
+      TOMBSTONE,
+      #[doc(hidden)]
+      EOF,
+      #[comment_separator]
+      #(#punctuation,)*
+      #[comment_separator]
+      #(#tokens,)*
+      #[comment_separator]
+      #(#nodes,)*
+
+      // Technical kind so that we can cast from u16 safely
+      #[doc(hidden)]
+      __LAST,
+    }
+    use self::SyntaxKind::*;
+
+    #[macro_export]
+    macro_rules! T {
+      #([#punctuation_values] => { $crate::SyntaxKind::#punctuation };)*
+      [string] => { $crate::SyntaxKind::STRING };
+      [number] => { $crate::SyntaxKind::NUMBER };
+      [true] => { $crate::SyntaxKind::TRUE };
+      [false] => { $crate::SyntaxKind::FALSE };
+      [null] => { $crate::SyntaxKind::NULL };
+    }
+    pub use T;
+  };
+
+  sourcegen::add_preamble("sourcegen_ast", sourcegen::reformat(ast.to_string()))
+    .replace("#[comment_separator]", "// ---")
+}
+
 fn to_upper_snake_case(s: &str) -> String {
   let mut buf = String::with_capacity(s.len());
   let mut prev = false;
@@ -383,6 +465,7 @@ fn token_name(name: &str) -> &str {
     "'{'" => "open_curly",
 
     ":" => "colon",
+    "," => "comma",
     "\"" => "double_quote",
 
     _ if name.chars().all(|c| c.is_ascii_lowercase() || c == '_') => name,

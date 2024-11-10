@@ -4,8 +4,8 @@ Number = 'number'
 Boolean = 'true' | 'false'
 Null = 'null'
 
-Object = '{' Element* '}'
-Array = '[' Value* ']'
+Object = '{' (Element ',')* '}'
+Array = '[' (Value ',')* ']'
 Element = Key ':' Value
 
 Value = String | Object | Array | Number | Boolean | Null
