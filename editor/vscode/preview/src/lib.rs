@@ -9,36 +9,17 @@ fn start() -> Result<(), JsValue> {
 
   let context = canvas.get_context("webgl2")?.unwrap().dyn_into::<WebGl2RenderingContext>()?;
 
-  let vert_shader = compile_shader(
-    &context,
-    WebGl2RenderingContext::VERTEX_SHADER,
-    r##"#version 300 es
-        in vec4 position;
+  let vert_shader =
+    compile_shader(&context, WebGl2RenderingContext::VERTEX_SHADER, include_str!("vert.glsl"))?;
 
-        void main() {
-            gl_Position = position;
-        }
-        "##,
-  )?;
-
-  let frag_shader = compile_shader(
-    &context,
-    WebGl2RenderingContext::FRAGMENT_SHADER,
-    r##"#version 300 es
-        precision highp float;
-        out vec4 outColor;
-
-        void main() {
-            outColor = vec4(1, 1, 1, 1);
-        }
-        "##,
-  )?;
+  let frag_shader =
+    compile_shader(&context, WebGl2RenderingContext::FRAGMENT_SHADER, include_str!("frag.glsl"))?;
   let program = link_program(&context, &vert_shader, &frag_shader)?;
   context.use_program(Some(&program));
 
   let vertices: [f32; 9] = [-0.7, -0.7, 0.0, 0.7, -0.7, 0.0, 0.0, 0.7, 0.0];
 
-  let position_attribute_location = context.get_attrib_location(&program, "position");
+  let position_attribute_location = context.get_attrib_location(&program, "pos");
   let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
   context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
 
