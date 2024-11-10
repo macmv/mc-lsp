@@ -4,11 +4,18 @@ pub fn value(p: &mut Parser) {
   match p.current() {
     // test ok
     // "hi"
-    //
+    T![string] => {
+      let m = p.start();
+      p.bump();
+      m.complete(p, SyntaxKind::STRING_VALUE);
+    }
+
     // test ok
     // 3
-    T![string] | T![number] => {
+    T![number] => {
+      let m = p.start();
       p.bump();
+      m.complete(p, SyntaxKind::NUMBER_VALUE);
     }
 
     // test ok

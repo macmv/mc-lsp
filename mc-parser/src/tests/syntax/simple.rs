@@ -7,7 +7,8 @@ fn strings() {
     expect![@r#"
       JSON
         WHITESPACE ' '
-        STRING '"foo"'
+        STRING_VALUE
+          STRING '"foo"'
     "#],
   );
 }
@@ -32,20 +33,24 @@ fn arrays() {
       JSON
         ARRAY
           OPEN_BRACKET '['
-          NUMBER '1'
+          NUMBER_VALUE
+            NUMBER '1'
           COMMA ','
           WHITESPACE ' '
-          NUMBER '2'
+          NUMBER_VALUE
+            NUMBER '2'
           COMMA ','
           WHITESPACE ' '
-          NUMBER '3'
+          NUMBER_VALUE
+            NUMBER '3'
           COMMA ','
           WHITESPACE ' '
           BOOLEAN
             FALSE 'false'
           COMMA ','
           WHITESPACE ' '
-          STRING '"hello"'
+          STRING_VALUE
+            STRING '"hello"'
           CLOSE_BRACKET ']'
     "#],
   );
@@ -65,7 +70,8 @@ fn objects() {
               STRING '"hello"'
             COLON ':'
             WHITESPACE ' '
-            NUMBER '3'
+            NUMBER_VALUE
+              NUMBER '3'
             COMMA ','
           WHITESPACE ' '
           ELEMENT
@@ -73,7 +79,8 @@ fn objects() {
               STRING '"goodbye"'
             COLON ':'
             WHITESPACE ' '
-            NUMBER '4'
+            NUMBER_VALUE
+              NUMBER '4'
             COMMA ','
           WHITESPACE ' '
           ELEMENT
