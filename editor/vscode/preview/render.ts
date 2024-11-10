@@ -1,7 +1,7 @@
 console.log("zzzz");
 
 const canvas = document.getElementById("canvas") as any;
-const gl = canvas.getContext("experimental-webgl") as WebGLRenderingContext;
+const gl = canvas.getContext("webgl2") as WebGLRenderingContext;
 
 const vertices = [-0.5, 0.5, 0.0, -0.5, -0.5, 0.0, 0.5, -0.5, 0.0];
 const indices = [0, 1, 2];
@@ -21,38 +21,40 @@ gl.bufferData(
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
 
 const vertCode =
-  "#version 330" +
-  "in vec3 pos;" +
-  "out vec2 uv;" +
-  "void main() {" +
-  "  gl_Position = vec4(pos, 1.0);" +
-  "  uv = pos.xy;" +
+  "#version 300 es\n" +
+  "in vec3 pos;\n" +
+  "out vec2 uv;\n" +
+  "void main() {\n" +
+  "  gl_Position = vec4(pos, 1.0);\n" +
+  "  uv = pos.xy;\n" +
   "}";
 
-const vertShader = gl.createShader(gl.VERTEX_SHADER);
-if (!vertShader) {
-  throw new Error("Failed to create vertex shader");
+const v_shader = gl.createShader(gl.VERTEX_SHADER)!;
+gl.shaderSource(v_shader, vertCode);
+gl.compileShader(v_shader);
+if (!gl.getShaderParameter(v_shader, gl.COMPILE_STATUS)) {
+  throw gl.getShaderInfoLog(v_shader);
 }
-gl.shaderSource(vertShader, vertCode);
-gl.compileShader(vertShader);
 
 const fragCode =
-  "#version 330" +
-  "in vec2 uv;" +
-  "void main() {" +
-  "  gl_FragColor = vec4(1.0, 0.5, 0.0, 1.0);" +
+  "#version 300 es\n" +
+  "precision highp float;\n" +
+  "in vec2 uv;\n" +
+  "out vec4 frag;\n" +
+  "void main() {\n" +
+  "  frag = vec4(1.0, 0.5, 0.0, 1.0);\n" +
   "}";
 
-const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-if (!fragShader) {
-  throw new Error("Failed to create vertex shader");
+const f_shader = gl.createShader(gl.FRAGMENT_SHADER)!;
+gl.shaderSource(f_shader, fragCode);
+gl.compileShader(f_shader);
+if (!gl.getShaderParameter(f_shader, gl.COMPILE_STATUS)) {
+  throw gl.getShaderInfoLog(f_shader);
 }
-gl.shaderSource(fragShader, fragCode);
-gl.compileShader(fragShader);
 
 const shaderProgram = gl.createProgram()!;
-gl.attachShader(shaderProgram, vertShader);
-gl.attachShader(shaderProgram, fragShader);
+gl.attachShader(shaderProgram, v_shader);
+gl.attachShader(shaderProgram, f_shader);
 gl.linkProgram(shaderProgram);
 gl.useProgram(shaderProgram);
 
