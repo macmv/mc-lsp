@@ -17,4 +17,5 @@ mc-build = { path = "mc-build" }
 mc-parser = { path = "mc-parser" }
 mc-syntax = { path = "mc-syntax" }
 mc-source = { path = "mc-source" }
+mc-hir = { path = "mc-hir" }
 mc-analysis = { path = "mc-analysis" }

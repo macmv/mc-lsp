@@ -364,6 +364,7 @@ dependencies = [
  "la-arena",
  "line-index",
  "log",
+ "mc-hir",
  "mc-source",
  "mc-syntax",
  "mc-test",

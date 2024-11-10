@@ -10,8 +10,10 @@ mod parse;
 use ast::AstNode;
 pub use ast::Json;
 use mc_parser::SyntaxKind;
-use node::{Mc, SyntaxNode};
+use node::Mc;
 use rowan::{GreenNode, TextSize};
+
+pub use node::SyntaxNode;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Parse<T> {
@@ -43,6 +45,8 @@ impl<T: AstNode> AstPtr<T> {
   }
 
   pub fn to_node(&self, root: &Parse<Json>) -> SyntaxNode { self.ptr.to_node(&root.syntax_node()) }
+
+  pub fn tree(&self, root: &Parse<Json>) -> T { T::cast(self.to_node(root)).unwrap() }
 }
 
 impl Json {

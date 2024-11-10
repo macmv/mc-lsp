@@ -3,7 +3,11 @@ use std::{fmt, sync::Arc};
 use line_index::LineIndex;
 use mc_source::FileId;
 
-#[salsa::database(mc_source::SourceDatabaseStorage, LineIndexDatabaseStorage)]
+#[salsa::database(
+  mc_source::SourceDatabaseStorage,
+  mc_hir::HirDatabaseStorage,
+  LineIndexDatabaseStorage
+)]
 #[derive(Default)]
 pub struct RootDatabase {
   pub(crate) storage: salsa::Storage<Self>,

@@ -11,6 +11,7 @@ line-index = "0.1.1"
 
 mc-source.workspace = true
 mc-syntax.workspace = true
+mc-hir.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

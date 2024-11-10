@@ -1,5 +1,6 @@
-use mc_source::{FileId, SourceDatabase, TextRange};
-use mc_syntax::ast::SyntaxKind;
+use mc_hir::HirDatabase;
+use mc_source::{FileId, TextRange};
+use mc_syntax::ast::AstNode;
 
 #[derive(Debug, Clone)]
 pub struct Highlight {
@@ -31,6 +32,9 @@ pub enum HighlightKind {
   /// Null.
   Null,
 
+  /// A texture path.
+  Texture,
+
   /// Local variables.
   // Keep last!
   Variable,
@@ -38,14 +42,14 @@ pub enum HighlightKind {
 
 #[allow(dead_code)]
 struct Highlighter<'a> {
-  db:   &'a dyn SourceDatabase,
+  db:   &'a dyn HirDatabase,
   file: FileId,
 
   hl: Highlight,
 }
 
 impl Highlight {
-  pub fn from_ast(db: &dyn SourceDatabase, file: FileId) -> Highlight {
+  pub fn from_ast(db: &dyn HirDatabase, file: FileId) -> Highlight {
     let mut hl = Highlighter::new(db, file);
 
     /*
@@ -56,31 +60,18 @@ impl Highlight {
     for node in syntax.descendants() {}
     */
 
-    let tree = db.parse_json(file);
+    let ast = db.parse_json(file);
+    let (model, source_map) = db.parse_model_with_source_map(file);
 
-    for node in tree.syntax_node().descendants() {
-      let range = node.text_range();
+    for texture in &model.textures {
+      let element = source_map.textures[&texture].tree(&ast);
 
-      let kind = match node.kind() {
-        SyntaxKind::KEY => match node.text().to_string().as_str() {
-          // FIXME: Need HIR!
-          "\"parent\"" | "\"textures\"" => HighlightKind::Keyword,
-          _ => HighlightKind::UnknownKey,
-        },
-        SyntaxKind::NUMBER => HighlightKind::Number,
-        SyntaxKind::BOOLEAN => HighlightKind::Boolean,
-        SyntaxKind::NULL => HighlightKind::Null,
-        _ => continue,
-      };
-
-      hl.hl.tokens.push(HighlightToken {
-        range: mc_source::TextRange {
-          start: mc_source::TextSize(range.start().into()),
-          end:   mc_source::TextSize(range.end().into()),
-        },
-        kind,
-        modifierst: 0,
-      });
+      if let Some(key) = element.key() {
+        hl.highlight(key, HighlightKind::Variable);
+      }
+      if let Some(value) = element.value() {
+        hl.highlight(value, HighlightKind::Texture);
+      }
     }
 
     hl.hl.tokens.sort_by_key(|t| t.range.start);
@@ -90,8 +81,21 @@ impl Highlight {
 }
 
 impl Highlighter<'_> {
-  fn new(db: &dyn SourceDatabase, file: FileId) -> Highlighter {
+  fn new(db: &dyn HirDatabase, file: FileId) -> Highlighter {
     Highlighter { db, file, hl: Highlight { tokens: Vec::new() } }
+  }
+
+  fn highlight<T: AstNode>(&mut self, node: T, kind: HighlightKind) {
+    let range = node.syntax().text_range();
+
+    self.hl.tokens.push(HighlightToken {
+      range: mc_source::TextRange {
+        start: mc_source::TextSize(range.start().into()),
+        end:   mc_source::TextSize(range.end().into()),
+      },
+      kind,
+      modifierst: 0,
+    });
   }
 }
 
