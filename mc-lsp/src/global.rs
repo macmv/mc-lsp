@@ -139,7 +139,7 @@ impl GlobalState {
     // Update all the file contents.
     {
       let files = self.files.read();
-      for &file in &workspace.files {
+      for &(file, _) in &workspace.files {
         self.analysis_host.change(mc_analysis::Change { file, text: files.read(file) });
       }
     }

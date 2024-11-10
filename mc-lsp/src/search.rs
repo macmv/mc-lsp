@@ -22,7 +22,7 @@ pub fn discover_workspace(files: &mut Files) -> mc_source::Workspace {
 
 fn discover_sources(
   path: impl AsRef<Path>,
-  sources: &mut Vec<FileId>,
+  sources: &mut Vec<(FileId, PathBuf)>,
   files: &mut Files,
 ) -> io::Result<()> {
   for entry in std::fs::read_dir(path)? {
@@ -32,12 +32,16 @@ fn discover_sources(
       let _ = discover_sources(&path, sources, files);
     } else {
       match files.get_absolute(&path) {
-        Some(id) => sources.push(id),
+        Some(id) => {
+          let relative = files.relative_path(&path).unwrap();
+          sources.push((id, relative.into()));
+        }
         None => {
+          let relative = files.relative_path(&path).unwrap();
           let id = files.create(&path);
           let content = std::fs::read_to_string(&path)?;
           files.write(id, content);
-          sources.push(id);
+          sources.push((id, relative.into()));
         }
       }
     }

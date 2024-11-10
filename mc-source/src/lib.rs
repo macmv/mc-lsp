@@ -1,6 +1,7 @@
 use std::{
   marker::PhantomData,
   ops::{Add, Sub},
+  path::PathBuf,
   sync::Arc,
 };
 
@@ -107,7 +108,8 @@ impl FileType for Json {
 
 #[derive(Default, Debug)]
 pub struct Workspace {
-  pub files: Vec<FileId>,
+  /// Files and their relative paths.
+  pub files: Vec<(FileId, PathBuf)>,
 }
 
 fn parse<T: FileType>(db: &dyn SourceDatabase, file_id: FileId) -> Parse<T::Source> {

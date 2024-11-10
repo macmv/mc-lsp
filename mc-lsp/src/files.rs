@@ -78,6 +78,16 @@ impl Files {
     }
   }
 
+  pub fn relative_path<'a>(&self, path: &'a Path) -> Option<&'a Path> {
+    assert!(path.is_absolute(), "cannot lookup relative for relative path {}", path.display());
+
+    if self.within_root(path) {
+      Some(path.strip_prefix(&self.root).unwrap())
+    } else {
+      None
+    }
+  }
+
   #[track_caller]
   fn within_root(&self, path: &Path) -> bool {
     assert!(path.is_absolute(), "cannot find source root for relative path {}", path.display());
