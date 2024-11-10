@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::global::GlobalState;
+use crate::{files::FileContent, global::GlobalState};
 
 pub fn handle_open_text_document(
   global: &mut GlobalState,
@@ -9,7 +9,7 @@ pub fn handle_open_text_document(
   if let Some(path) = global.absolute_path(&params.text_document.uri) {
     let mut w = global.files.write();
     let file_id = w.create(&path);
-    w.write(file_id, params.text_document.text.clone());
+    w.write(file_id, FileContent::Json(params.text_document.text.clone()));
   }
 
   Ok(())
@@ -21,12 +21,14 @@ pub fn handle_change_text_document(
 ) -> Result<(), Box<dyn Error>> {
   if let Some(path) = global.absolute_path(&params.text_document.uri) {
     let file_id = global.files.read().get_absolute(&path).ok_or("file not found")?;
-    let file = global.files.read().read(file_id);
+    let FileContent::Json(file) = global.files.read().read(file_id) else {
+      return Ok(());
+    };
 
     let new_file = apply_changes(file.clone(), &params.content_changes);
 
     if file != new_file {
-      global.files.write().write(file_id, new_file.clone());
+      global.files.write().write(file_id, FileContent::Json(new_file.clone()));
     }
   }
 

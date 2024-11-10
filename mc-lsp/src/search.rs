@@ -7,12 +7,13 @@ use std::{
 
 use mc_source::FileId;
 
-use crate::files::Files;
+use crate::files::{FileContent, Files};
 
 pub fn discover_workspace(files: &mut Files) -> mc_source::Workspace {
   // We assume the root is the current directory.
   let mut sources = vec![];
   let root_path: PathBuf = Path::new(".").canonicalize().unwrap();
+  files.change_root(root_path.clone());
   discover_sources(&root_path, &mut sources, files).unwrap();
 
   files.change_root(root_path);
@@ -29,20 +30,27 @@ fn discover_sources(
     let entry = entry?;
     let path = entry.path();
     if path.is_dir() {
-      let _ = discover_sources(&path, sources, files);
-    } else {
+      discover_sources(&path, sources, files)?;
+    } else if let Some(relative) = files.relative_path(&path) {
       match files.get_absolute(&path) {
         Some(id) => {
-          let relative = files.relative_path(&path).unwrap();
           sources.push((id, relative.into()));
         }
-        None => {
-          let relative = files.relative_path(&path).unwrap();
-          let id = files.create(&path);
-          let content = std::fs::read_to_string(&path)?;
-          files.write(id, content);
-          sources.push((id, relative.into()));
-        }
+        None => match relative.extension() {
+          Some(ext) if ext == "json" => {
+            let id = files.create(&path);
+            let content = std::fs::read_to_string(&path)?;
+            files.write(id, FileContent::Json(content));
+            sources.push((id, relative.into()));
+          }
+          Some(ext) if ext == "png" => {
+            let id = files.create(&path);
+            let content = std::fs::read(&path)?;
+            files.write(id, FileContent::Png(content));
+            sources.push((id, relative.into()));
+          }
+          _ => {}
+        },
       }
     }
   }

@@ -17,8 +17,14 @@ pub struct Files {
 }
 
 struct File {
-  contents: String,
-  path:     FilePath,
+  content: FileContent,
+  path:    FilePath,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FileContent {
+  Json(String),
+  Png(Vec<u8>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -43,12 +49,12 @@ impl Files {
     }
   }
 
-  pub fn read(&self, id: FileId) -> String {
+  pub fn read(&self, id: FileId) -> FileContent {
     let file = self.files.get(&id).unwrap();
-    file.contents.clone()
+    file.content.clone()
   }
-  pub fn write(&mut self, id: FileId, contents: String) {
-    self.files.get_mut(&id).unwrap().contents = contents;
+  pub fn write(&mut self, id: FileId, content: FileContent) {
+    self.files.get_mut(&id).unwrap().content = content;
     self.changes.push(id);
   }
 
@@ -60,7 +66,7 @@ impl Files {
     let id = FileId::new_raw(self.files.len() as u32);
 
     self.file_lookup.insert(path.clone(), id);
-    self.files.insert(id, File { contents: String::new(), path });
+    self.files.insert(id, File { content: FileContent::Json(String::new()), path });
 
     id
   }
@@ -149,7 +155,7 @@ mod tests {
     let file = FileId::new_raw(0);
 
     let id = files.create(Path::new("/foo/bar"));
-    files.write(id, "bar".to_string());
+    files.write(id, FileContent::Json("bar".to_string()));
 
     let id = files.get_absolute(Path::new("/foo/bar"));
     assert_eq!(id, Some(file));
@@ -161,7 +167,7 @@ mod tests {
     let file = FileId::new_raw(0);
 
     let id = files.create(Path::new("/foo/bar"));
-    files.write(id, "bar".to_string());
+    files.write(id, FileContent::Json("bar".to_string()));
 
     let id = files.get_absolute(Path::new("/foo/bar"));
     assert_eq!(id, Some(file));
@@ -169,7 +175,7 @@ mod tests {
 
   #[test]
   fn reindex_works() {
-    let mut files = Files::new("/foo".into());
+    let mut files = Files::new("/".into());
 
     let file_1 = files.create(Path::new("/foo/bar"));
     let file_2 = files.create(Path::new("/baz"));
@@ -177,7 +183,7 @@ mod tests {
     assert_eq!(files.files[&file_1].path, FilePath::Absolute(PathBuf::from("/foo/bar")));
     assert_eq!(files.files[&file_2].path, FilePath::Absolute(PathBuf::from("/baz")));
 
-    files.change_root();
+    files.change_root("/foo".into());
 
     assert_eq!(files.files[&file_1].path, FilePath::Rooted { relative_path: PathBuf::from("bar") });
     assert_eq!(files.files[&file_2].path, FilePath::Absolute(PathBuf::from("/baz")));

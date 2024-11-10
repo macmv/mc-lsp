@@ -9,7 +9,7 @@ use std::{collections::HashMap, error::Error, path::PathBuf, sync::Arc};
 
 use lsp_types::{notification::Notification, Url};
 
-use crate::files::Files;
+use crate::files::{FileContent, Files};
 
 pub struct GlobalState {
   pub sender: Sender<lsp_server::Message>,
@@ -140,7 +140,9 @@ impl GlobalState {
     {
       let files = self.files.read();
       for &(file, _) in &workspace.files {
-        self.analysis_host.change(mc_analysis::Change { file, text: files.read(file) });
+        if let FileContent::Json(text) = files.read(file) {
+          self.analysis_host.change(mc_analysis::Change { file, text });
+        }
       }
     }
   }
@@ -149,8 +151,10 @@ impl GlobalState {
     let mut files = self.files.write();
     let changes = files.take_changes();
 
-    for &file_id in &changes {
-      self.analysis_host.change(mc_analysis::Change { file: file_id, text: files.read(file_id) });
+    for &file in &changes {
+      if let FileContent::Json(text) = files.read(file) {
+        self.analysis_host.change(mc_analysis::Change { file, text });
+      }
     }
 
     let snap = self.analysis_host.snapshot();
