@@ -9,7 +9,7 @@ edition = "2021"
 la-arena = "0.3.1"
 rowan = "0.15.16"
 url = "2.5.0"
+mc-parser.workspace = true
 
 [build-dependencies]
 mc-build.workspace = true
-mc-parser.workspace = true

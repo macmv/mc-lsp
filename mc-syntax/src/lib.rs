@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
 mod ast;
+mod node;
 
 pub use ast::Json;
 use rowan::{GreenNode, SyntaxNode};

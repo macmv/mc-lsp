@@ -479,8 +479,7 @@ impl Field {
     match self {
       Field::Token(token) => match token.as_str() {
         "'" => Some(quote! { T!["'"] }),
-        "\"" => Some(quote! { T!["\""] }),
-        "\"\"\"" => Some(quote! { T!["\"\"\""] }),
+        "\"" => Some(quote! { T!['"'] }),
         _ => {
           let token: proc_macro2::TokenStream = token.parse().unwrap();
           Some(quote! { T![#token] })
@@ -514,7 +513,7 @@ impl Field {
 
 fn lower(grammar: &Grammar) -> AstSrc {
   let mut res = AstSrc {
-    tokens: "Whitespace String Number Ident"
+    tokens: "Whitespace String Number True False Null"
       .split_ascii_whitespace()
       .map(|it| it.to_string())
       .collect::<Vec<_>>(),
