@@ -392,7 +392,6 @@ fn generate_syntax_kinds(ast: &AstSrc) -> String {
       #[doc(hidden)]
       __LAST,
     }
-    use self::SyntaxKind::*;
 
     #[macro_export]
     macro_rules! T {
@@ -403,7 +402,6 @@ fn generate_syntax_kinds(ast: &AstSrc) -> String {
       [false] => { $crate::SyntaxKind::FALSE };
       [null] => { $crate::SyntaxKind::NULL };
     }
-    pub use T;
   };
 
   sourcegen::add_preamble("sourcegen_ast", sourcegen::reformat(ast.to_string()))
