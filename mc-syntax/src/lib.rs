@@ -1,4 +1,7 @@
-use std::marker::PhantomData;
+use std::{
+  hash::{Hash, Hasher},
+  marker::PhantomData,
+};
 
 pub mod ast;
 mod node;
@@ -7,7 +10,7 @@ mod parse;
 use ast::AstNode;
 pub use ast::Json;
 use mc_parser::SyntaxKind;
-use node::SyntaxNode;
+use node::{Mc, SyntaxNode};
 use rowan::{GreenNode, TextSize};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,6 +18,31 @@ pub struct Parse<T> {
   green:  GreenNode,
   errors: Vec<SyntaxError>,
   _ty:    PhantomData<fn() -> T>,
+}
+
+pub type SyntaxNodePtr = rowan::ast::SyntaxNodePtr<Mc>;
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct AstPtr<T> {
+  ptr:      SyntaxNodePtr,
+  _phantom: std::marker::PhantomData<fn() -> T>,
+}
+
+impl<T> Clone for AstPtr<T> {
+  fn clone(&self) -> Self { AstPtr { ptr: self.ptr, _phantom: PhantomData } }
+}
+impl<T> Copy for AstPtr<T> {}
+
+impl<T> Hash for AstPtr<T> {
+  fn hash<H: Hasher>(&self, state: &mut H) { self.ptr.hash(state) }
+}
+
+impl<T: AstNode> AstPtr<T> {
+  pub fn new(node: &T) -> Self {
+    AstPtr { ptr: SyntaxNodePtr::new(node.syntax()), _phantom: PhantomData }
+  }
+
+  pub fn to_node(&self, root: &Parse<Json>) -> SyntaxNode { self.ptr.to_node(&root.syntax_node()) }
 }
 
 impl Json {
