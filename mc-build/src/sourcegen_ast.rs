@@ -298,7 +298,9 @@ fn generate_nodes(grammar: &AstSrc) -> String {
   let ast = quote! {
     #![allow(non_snake_case, non_camel_case_types)]
     use crate::{
-      ast::{support, AstChildren, AstTokenChildren, AstNode},
+      // FIXME
+      // ast::{support, AstChildren, AstTokenChildren, AstNode},
+      ast::{support, AstChildren, AstNode},
       node::{SyntaxNode, SyntaxToken},
     };
     use mc_parser::{
@@ -359,7 +361,7 @@ fn generate_syntax_kinds(ast: &AstSrc) -> String {
   }
 
   let mut tokens: Vec<Ident> = vec![];
-  for tok in &["WHITESPACE", "TRUE", "FALSE"] {
+  for tok in &["WHITESPACE", "STRING", "NUMBER", "TRUE", "FALSE", "NULL"] {
     let ident = Ident::new(tok, Span::call_site());
     tokens.push(ident);
   }

@@ -5,12 +5,14 @@ use std::marker::PhantomData;
 use crate::node::{SyntaxElementChildren, SyntaxNode, SyntaxNodeChildren, SyntaxToken};
 pub use mc_parser::SyntaxKind;
 
+#[allow(unused)]
 pub use generated::{nodes::*, tokens::*};
 
 /// The main trait to go from untyped `SyntaxNode`  to a typed ast. The
 /// conversion itself has zero runtime cost: ast and syntax nodes have exactly
 /// the same representation: a pointer to the tree root and a pointer to the
 /// node itself.
+#[allow(dead_code)]
 pub trait AstNode {
   fn can_cast(kind: SyntaxKind) -> bool
   where
@@ -36,6 +38,7 @@ pub trait AstNode {
 }
 
 /// Like `AstNode`, but wraps tokens rather than interior nodes.
+#[allow(dead_code)]
 pub trait AstToken {
   fn can_cast(token: SyntaxKind) -> bool
   where
@@ -57,6 +60,7 @@ pub struct AstChildren<N> {
   ph:    PhantomData<N>,
 }
 
+#[allow(dead_code)]
 impl<N> AstChildren<N> {
   fn new(parent: &SyntaxNode) -> Self { AstChildren { inner: parent.children(), ph: PhantomData } }
 }
@@ -73,6 +77,7 @@ pub struct AstTokenChildren {
   kind:  SyntaxKind,
 }
 
+#[allow(dead_code)]
 impl AstTokenChildren {
   fn new(parent: &SyntaxNode, kind: SyntaxKind) -> Self {
     AstTokenChildren { inner: parent.children_with_tokens(), kind }
@@ -101,6 +106,7 @@ mod support {
     parent.children().find_map(N::cast)
   }
 
+  #[allow(dead_code)]
   pub(super) fn children<N: AstNode>(parent: &SyntaxNode) -> AstChildren<N> {
     AstChildren::new(parent)
   }
@@ -109,6 +115,7 @@ mod support {
     parent.children_with_tokens().filter_map(|it| it.into_token()).find(|it| it.kind() == kind)
   }
 
+  #[allow(dead_code)]
   pub(super) fn token_children(parent: &SyntaxNode, kind: SyntaxKind) -> AstTokenChildren {
     AstTokenChildren::new(parent, kind)
   }

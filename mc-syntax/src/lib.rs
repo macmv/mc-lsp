@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-mod ast;
+pub mod ast;
 mod node;
 mod parse;
 

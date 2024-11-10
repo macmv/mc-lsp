@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use mc_parser::SyntaxKind;
 use rowan::Language;
 

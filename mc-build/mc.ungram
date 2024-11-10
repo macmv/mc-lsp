@@ -1,13 +1,13 @@
-String = '"' 'string' '"'
-Key = '"' 'string' '"'
-Number = 'number'
+StringValue = 'string'
+Key = 'string'
+NumberValue = 'number'
 Boolean = 'true' | 'false'
-Null = 'null'
+NullValue = 'null'
 
-Object = '{' (Element ',')* '}'
-Array = '[' (Value ',')* ']'
+Object = '{' Element* '}'
+Array = '[' Value* ']'
 Element = Key ':' Value
 
-Value = String | Object | Array | Number | Boolean | Null
+Value = StringValue | Object | Array | NumberValue | Boolean | NullValue
 
 Json = Value
