@@ -21,8 +21,12 @@
     "languages": [
       {
         "id": "mcmodel",
-        "aliases": ["Minecraft Model"],
-        "filenamePatterns": ["**/assets/*/models/**/*.json"]
+        "aliases": [
+          "Minecraft Model"
+        ],
+        "filenamePatterns": [
+          "**/assets/*/models/**/*.json"
+        ]
       }
     ]
   },
