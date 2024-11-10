@@ -9,7 +9,11 @@ use crate::HirDatabase;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Model {
   pub nodes: Arena<Node>,
+
+  pub textures: Vec<NodeId>,
 }
+
+pub type NodeId = Idx<Node>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Node {
@@ -23,18 +27,18 @@ pub struct TextureDef {
 }
 
 struct Parser<'a> {
-  nodes: &'a mut Arena<Node>,
+  model: &'a mut Model,
 }
 
 pub fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Model> {
   let json = db.parse_json(file_id);
 
-  let mut nodes = Arena::new();
-  let mut parser = Parser { nodes: &mut nodes };
+  let mut model = Model { nodes: Arena::new(), textures: Vec::new() };
+  let mut parser = Parser { model: &mut model };
 
   parser.parse_root(&json.tree());
 
-  Arc::new(Model { nodes })
+  Arc::new(model)
 }
 
 impl Parser<'_> {
@@ -52,8 +56,7 @@ impl Parser<'_> {
     self.parse_object(textures, |p, key, value| {
       let Some(texture) = value.as_str() else { return };
 
-      p.nodes
-        .alloc(Node::TextureDef(TextureDef { name: key.to_string(), value: texture.to_string() }));
+      p.alloc_texture_def(TextureDef { name: key.to_string(), value: texture.to_string() });
     });
   }
 
@@ -70,5 +73,11 @@ impl Parser<'_> {
       }
       _ => {}
     }
+  }
+
+  fn alloc_texture_def(&mut self, texture_def: TextureDef) -> NodeId {
+    let id = self.model.nodes.alloc(Node::TextureDef(texture_def));
+    self.model.textures.push(id);
+    id
   }
 }
