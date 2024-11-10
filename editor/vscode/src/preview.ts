@@ -6,8 +6,8 @@ export const setupPreview = (
 ) => {
   const onDiskPath = Uri.joinPath(
     context.extensionUri,
-    "out",
     "preview",
+    "out",
     "render.js",
   );
   const previewSrc = panel.webview.asWebviewUri(onDiskPath);
@@ -24,6 +24,7 @@ const getWebviewContent = (previewSrc: Uri) => {
     <title>Preview Model</title>
   </head>
   <body>
+    <canvas id="canvas" width=800 height=800 />
     <script src="${previewSrc}"/>
   </body>
   </html>`;
