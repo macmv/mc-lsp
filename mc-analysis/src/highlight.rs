@@ -1,4 +1,4 @@
-use mc_hir::HirDatabase;
+use mc_hir::{model, HirDatabase};
 use mc_source::{FileId, TextRange};
 use mc_syntax::ast::AstNode;
 
@@ -63,14 +63,18 @@ impl Highlight {
     let ast = db.parse_json(file);
     let (model, source_map) = db.parse_model_with_source_map(file);
 
-    for texture in &model.textures {
-      let element = source_map.textures[&texture].tree(&ast);
+    for (id, node) in model.nodes.iter() {
+      match node {
+        model::Node::TextureDef(_) => {
+          let element = source_map.textures[&id].tree(&ast);
 
-      if let Some(key) = element.key() {
-        hl.highlight(key, HighlightKind::Variable);
-      }
-      if let Some(value) = element.value() {
-        hl.highlight(value, HighlightKind::Texture);
+          if let Some(key) = element.key() {
+            hl.highlight(key, HighlightKind::Variable);
+          }
+          if let Some(value) = element.value() {
+            hl.highlight(value, HighlightKind::Texture);
+          }
+        }
       }
     }
 
