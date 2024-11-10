@@ -182,6 +182,11 @@ impl<'a> Lexer<'a> {
         self.ok(start, SyntaxKind::FALSE)
       }
 
+      'n' if self.tok.source[self.tok.index..].starts_with("null") => {
+        self.tok.index += 4;
+        self.ok(start, SyntaxKind::NULL)
+      }
+
       ':' => {
         self.tok.eat().unwrap();
         self.ok(start, T![:])

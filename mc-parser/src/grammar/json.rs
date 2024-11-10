@@ -19,6 +19,10 @@ pub fn value(p: &mut Parser) {
       m.complete(p, SyntaxKind::BOOLEAN);
     }
 
+    // test ok
+    // null
+    T![null] => p.eat(T![null]),
+
     // T!['{'] => object(p),
     // T!['['] => array(p),
 
