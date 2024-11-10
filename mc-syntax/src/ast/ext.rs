@@ -1,16 +1,39 @@
-impl crate::ast::Value {
+use crate::ast;
+
+impl ast::Value {
   pub fn as_str(&self) -> Option<String> {
     match self {
-      crate::ast::Value::StringValue(s) => Some(s.parse_text()),
+      ast::Value::StringValue(s) => Some(s.parse_text()),
+      _ => None,
+    }
+  }
+
+  pub fn as_i64(&self) -> Option<i64> {
+    match self {
+      ast::Value::NumberValue(s) => s.syntax.text().to_string().parse().ok(),
+      _ => None,
+    }
+  }
+
+  pub fn as_bool(&self) -> Option<bool> {
+    match self {
+      ast::Value::Boolean(s) => Some(s.syntax.text().to_string() == "true"),
+      _ => None,
+    }
+  }
+
+  pub fn as_object(&self) -> Option<ast::Object> {
+    match self {
+      ast::Value::Object(o) => Some(o.clone()),
       _ => None,
     }
   }
 }
 
-impl crate::ast::Key {
+impl ast::Key {
   pub fn parse_text(&self) -> String { parse_text(&self.syntax.text().to_string()) }
 }
-impl crate::ast::StringValue {
+impl ast::StringValue {
   pub fn parse_text(&self) -> String { parse_text(&self.syntax.text().to_string()) }
 }
 
