@@ -91,10 +91,19 @@ impl Analysis {
         })
         .unwrap();
 
-      let node = token.parent_ancestors().find_map(|node| ast::Value::cast(node))?;
-      let ptr = AstPtr::new(&node);
+      let nodes = token.parent_ancestors().filter_map(|node| match node.kind() {
+        k if ast::Value::can_cast(k) => {
+          let ptr = AstPtr::new(&ast::Value::cast(node).unwrap());
+          source_map.ast_values.get(&ptr)
+        }
+        k if ast::Element::can_cast(k) => {
+          let ptr = AstPtr::new(&ast::Element::cast(node).unwrap());
+          source_map.ast_elements.get(&ptr)
+        }
+        _ => None,
+      });
 
-      if let Some(node) = source_map.values.get(&ptr) {
+      for node in nodes {
         match model.nodes[*node] {
           model::Node::Texture(ref t) => {
             let name = match t {
@@ -121,6 +130,22 @@ impl Analysis {
                 },
               });
             }
+          }
+          model::Node::TextureDef(ref t) => {
+            if t.value.starts_with("#") {
+              continue;
+            }
+
+            let first = t.value.split(":").next();
+            let second = t.value.split(":").nth(1);
+
+            let (_namespace, _value) = match (first, second) {
+              (Some(namespace), Some(value)) => (namespace, value),
+              (Some(name), None) => ("minecraft", name),
+              _ => continue,
+            };
+
+            dbg!(&t);
           }
 
           _ => {}

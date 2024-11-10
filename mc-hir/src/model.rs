@@ -25,7 +25,8 @@ pub enum Node {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct ModelSourceMap {
-  pub values: HashMap<AstPtr<ast::Value>, NodeId>,
+  pub ast_values:   HashMap<AstPtr<ast::Value>, NodeId>,
+  pub ast_elements: HashMap<AstPtr<ast::Element>, NodeId>,
 
   pub texture_defs: HashMap<NodeId, AstPtr<ast::Element>>,
   pub textures:     HashMap<NodeId, AstPtr<ast::Value>>,
@@ -227,6 +228,7 @@ impl ModelNode for TextureDef {
     let id = parser.model.nodes.alloc(Node::TextureDef(self));
     parser.model.texture_defs.push(id);
     parser.source_map.texture_defs.insert(id, AstPtr::new(&elem));
+    parser.source_map.ast_elements.insert(AstPtr::new(&elem), id);
     id
   }
 }
@@ -257,7 +259,7 @@ impl ModelNode for Texture {
   fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::Texture(self));
     parser.source_map.textures.insert(id, AstPtr::new(&elem));
-    parser.source_map.values.insert(AstPtr::new(&elem), id);
+    parser.source_map.ast_values.insert(AstPtr::new(&elem), id);
     id
   }
 }
