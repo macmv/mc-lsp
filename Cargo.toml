@@ -9,6 +9,8 @@ members = [
   "mc-hir",
   "mc-analysis",
   "mc-lsp",
+
+  "editor/vscode/preview",
 ]
 
 [workspace.dependencies]

@@ -5,19 +5,13 @@ export const setupPreview = (
   panel: WebviewPanel,
 ) => {
   const renderSrc = panel.webview.asWebviewUri(
-    Uri.joinPath(context.extensionUri, "preview", "out", "render.js"),
-  );
-  const vertSrc = panel.webview.asWebviewUri(
-    Uri.joinPath(context.extensionUri, "preview", "vert.glsl"),
-  );
-  const fragSrc = panel.webview.asWebviewUri(
-    Uri.joinPath(context.extensionUri, "preview", "frag.glsl"),
+    Uri.joinPath(context.extensionUri, "preview", "out", "index.js"),
   );
 
-  panel.webview.html = getWebviewContent(renderSrc, vertSrc, fragSrc);
+  panel.webview.html = getWebviewContent(renderSrc);
 };
 
-const getWebviewContent = (previewSrc: Uri, vertSrc: Uri, fragSrc: Uri) => {
+const getWebviewContent = (previewSrc: Uri) => {
   return `<!DOCTYPE html>
   <html lang="en">
   <head>
@@ -27,10 +21,6 @@ const getWebviewContent = (previewSrc: Uri, vertSrc: Uri, fragSrc: Uri) => {
   </head>
   <body>
     <canvas id="canvas" width=800 height=800 />
-    <script>
-      var g_vertCode = fetch("${vertSrc}").then((res) => res.text());
-      var g_fragCode = fetch("${fragSrc}").then((res) => res.text());
-    </script>
     <script src="${previewSrc}"/>
   </body>
   </html>`;

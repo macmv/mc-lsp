@@ -1,0 +1,25 @@
+[package]
+edition = "2021"
+name = "mc-preview"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+js-sys = "0.3.72"
+wasm-bindgen = "0.2.95"
+
+[dependencies.web-sys]
+version = "0.3.72"
+features = [
+  'Document',
+  'Element',
+  'HtmlCanvasElement',
+  'WebGlBuffer',
+  'WebGlVertexArrayObject',
+  'WebGl2RenderingContext',
+  'WebGlProgram',
+  'WebGlShader',
+  'Window',
+]
