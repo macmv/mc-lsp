@@ -9,10 +9,10 @@ mod parse;
 
 use ast::AstNode;
 pub use ast::Json;
-use mc_parser::SyntaxKind;
 use node::Mc;
 use rowan::{GreenNode, TextSize};
 
+pub use mc_parser::{SyntaxKind, T};
 pub use node::SyntaxNode;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

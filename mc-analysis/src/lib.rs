@@ -11,7 +11,12 @@ use std::{panic::UnwindSafe, sync::Arc};
 use database::{LineIndexDatabase, RootDatabase};
 use highlight::Highlight;
 use line_index::LineIndex;
+use mc_hir::{model, HirDatabase};
 use mc_source::{FileId, FileLocation, FileRange, SourceDatabase, Workspace};
+use mc_syntax::{
+  ast::{self, AstNode},
+  AstPtr, T,
+};
 use salsa::{Cancelled, ParallelDatabase};
 
 pub struct AnalysisHost {
@@ -70,8 +75,60 @@ impl Analysis {
     self.with_db(|db| Highlight::from_ast(db, file))
   }
 
-  pub fn definition_for_name(&self, _: FileLocation) -> Cancellable<Option<FileRange>> {
-    self.with_db(|_| None)
+  pub fn definition_for_name(&self, pos: FileLocation) -> Cancellable<Option<FileRange>> {
+    self.with_db(|db| {
+      let ast = db.parse_json(pos.file);
+      let (model, source_map) = db.parse_model_with_source_map(pos.file);
+
+      let token = ast
+        .syntax_node()
+        .token_at_offset(line_index::TextSize::from(pos.index.0))
+        .max_by_key(|token| match token.kind() {
+          T![string] => 10,
+          T![number] => 9,
+
+          _ => 1,
+        })
+        .unwrap();
+
+      let node = token.parent_ancestors().find_map(|node| ast::Value::cast(node))?;
+      let ptr = AstPtr::new(&node);
+
+      if let Some(node) = source_map.values.get(&ptr) {
+        match model.nodes[*node] {
+          model::Node::Texture(ref t) => {
+            let name = match t {
+              model::Texture::Reference(t) => t,
+            };
+            let node = model.texture_defs.iter().find_map(|id| {
+              let model::Node::TextureDef(ref def) = model.nodes[*id] else { unreachable!() };
+
+              if def.name == *name {
+                Some(id)
+              } else {
+                None
+              }
+            });
+
+            if let Some(node) = node {
+              let element = source_map.texture_defs[&node].tree(&ast);
+
+              return Some(FileRange {
+                file:  pos.file,
+                range: mc_source::TextRange {
+                  start: mc_source::TextSize(element.syntax().text_range().start().into()),
+                  end:   mc_source::TextSize(element.syntax().text_range().end().into()),
+                },
+              });
+            }
+          }
+
+          _ => {}
+        }
+      }
+
+      None
+    })
   }
 
   pub fn references_for_name(&self, _: FileLocation) -> Cancellable<Vec<FileRange>> {

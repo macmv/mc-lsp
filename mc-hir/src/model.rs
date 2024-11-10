@@ -10,7 +10,7 @@ use crate::HirDatabase;
 pub struct Model {
   pub nodes: Arena<Node>,
 
-  pub textures: Vec<NodeId>,
+  pub texture_defs: Vec<NodeId>,
 }
 
 pub type NodeId = Idx<Node>;
@@ -25,6 +25,8 @@ pub enum Node {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct ModelSourceMap {
+  pub values: HashMap<AstPtr<ast::Value>, NodeId>,
+
   pub texture_defs: HashMap<NodeId, AstPtr<ast::Element>>,
   pub textures:     HashMap<NodeId, AstPtr<ast::Value>>,
   pub elements:     HashMap<NodeId, AstPtr<ast::Object>>,
@@ -81,7 +83,7 @@ struct Parser<'a> {
 pub fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> (Arc<Model>, Arc<ModelSourceMap>) {
   let json = db.parse_json(file_id);
 
-  let mut model = Model { nodes: Arena::new(), textures: Vec::new() };
+  let mut model = Model { nodes: Arena::new(), texture_defs: Vec::new() };
   let mut source_map = ModelSourceMap::default();
   let mut parser = Parser { model: &mut model, source_map: &mut source_map };
 
@@ -223,7 +225,7 @@ impl ModelNode for TextureDef {
 
   fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::TextureDef(self));
-    parser.model.textures.push(id);
+    parser.model.texture_defs.push(id);
     parser.source_map.texture_defs.insert(id, AstPtr::new(&elem));
     id
   }
@@ -255,6 +257,7 @@ impl ModelNode for Texture {
   fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::Texture(self));
     parser.source_map.textures.insert(id, AstPtr::new(&elem));
+    parser.source_map.values.insert(AstPtr::new(&elem), id);
     id
   }
 }
