@@ -11,8 +11,8 @@ export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "mclsp" is now active!');
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("mclsp.helloWorld", () => {
-      vscode.window.showInformationMessage("Hello World from mclsp!");
+    vscode.commands.registerCommand("mclsp.previewModel", () => {
+      vscode.window.showInformationMessage("TODO");
     })
   );
 

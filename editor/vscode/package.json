@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "mclsp.helloWorld",
-        "title": "Hello World"
+        "command": "mclsp.previewModel",
+        "title": "Preview Model"
       }
     ],
     "languages": [
