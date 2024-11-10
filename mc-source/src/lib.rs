@@ -16,7 +16,7 @@ pub struct FileLocation {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FileRange {
   pub file:  FileId,
-  pub range: TextRange,
+  pub range: Option<TextRange>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

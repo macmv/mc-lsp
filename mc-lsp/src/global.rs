@@ -160,6 +160,11 @@ impl GlobalState {
     let snap = self.analysis_host.snapshot();
 
     for file_id in changes.iter().copied().chain(self.diagnostic_changes.drain(..)) {
+      match files.read(file_id) {
+        FileContent::Json(_) => {}
+        FileContent::Png(_) => continue,
+      }
+
       let _line_index = snap.line_index(file_id).unwrap();
       let diagnostics = snap.diagnostics(file_id).unwrap();
 

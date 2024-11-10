@@ -98,13 +98,21 @@ pub fn handle_goto_definition(
   let definition = snap.analysis.definition_for_name(cursor_pos)?;
 
   if let Some(def) = definition {
-    let converter = LspConverter::new(&snap, def.file)?;
     let files = snap.files.read();
 
     Ok(Some(lsp_types::GotoDefinitionResponse::Scalar(lsp_types::Location::new(
       lsp_types::Url::parse(&format!("file://{}", files.id_to_absolute_path(def.file).display()))
         .unwrap(),
-      converter.range(def.range),
+      match def.range {
+        Some(range) => {
+          let converter = LspConverter::new(&snap, def.file)?;
+          converter.range(range)
+        }
+        None => lsp_types::Range {
+          start: lsp_types::Position::new(0, 0),
+          end:   lsp_types::Position::new(0, 0),
+        },
+      },
     ))))
   } else {
     Ok(None)
@@ -126,12 +134,12 @@ pub fn handle_document_highlight(
     }
 
     let def_highlight = lsp_types::DocumentHighlight {
-      range: converter.range(def.range),
+      range: converter.range(def.range.unwrap()),
       kind:  Some(lsp_types::DocumentHighlightKind::WRITE),
     };
 
     let refs_highlight = refs.into_iter().map(|r| lsp_types::DocumentHighlight {
-      range: converter.range(r.range),
+      range: converter.range(r.range.unwrap()),
       kind:  Some(lsp_types::DocumentHighlightKind::READ),
     });
 

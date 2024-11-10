@@ -6,7 +6,7 @@ mod database;
 #[macro_use]
 extern crate log;
 
-use std::{panic::UnwindSafe, sync::Arc};
+use std::{panic::UnwindSafe, path::Path, sync::Arc};
 
 use database::{LineIndexDatabase, RootDatabase};
 use highlight::Highlight;
@@ -124,10 +124,10 @@ impl Analysis {
 
               return Some(FileRange {
                 file:  pos.file,
-                range: mc_source::TextRange {
+                range: Some(mc_source::TextRange {
                   start: mc_source::TextSize(element.syntax().text_range().start().into()),
                   end:   mc_source::TextSize(element.syntax().text_range().end().into()),
-                },
+                }),
               });
             }
           }
@@ -139,13 +139,26 @@ impl Analysis {
             let first = t.value.split(":").next();
             let second = t.value.split(":").nth(1);
 
-            let (_namespace, _value) = match (first, second) {
+            let (namespace, value) = match (first, second) {
               (Some(namespace), Some(value)) => (namespace, value),
               (Some(name), None) => ("minecraft", name),
               _ => continue,
             };
 
-            dbg!(&t);
+            // FIXME: There's like 8 different ways this is wrong. At the very least, we
+            // should derive the `assets` path from the path of the current
+            // model file.
+            let texture_path =
+              format!("src/main/resources/assets/{namespace}/textures/{value}.png");
+            let path = Path::new(&texture_path);
+
+            let workspace = db.workspace();
+            let file =
+              workspace.files.iter().find_map(|(id, p)| if path == p { Some(id) } else { None });
+
+            if let Some(file) = file {
+              return Some(FileRange { file: *file, range: None });
+            }
           }
 
           _ => {}
