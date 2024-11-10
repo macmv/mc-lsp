@@ -7,6 +7,8 @@ import {
   TransportKind,
 } from "vscode-languageclient/node";
 
+import { setupPreview } from "./preview";
+
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "mclsp" is now active!');
 
@@ -16,9 +18,13 @@ export async function activate(context: vscode.ExtensionContext) {
         "previewModel",
         "Preview Model",
         vscode.ViewColumn.Two,
-        {}
+        {
+          enableScripts: true,
+        },
       );
-    })
+
+      setupPreview(context, panel);
+    }),
   );
 
   const exec: Executable = {
@@ -47,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
     "MC LSP",
 
     serverOptions,
-    clientOptions
+    clientOptions,
   );
 
   await client.start();
