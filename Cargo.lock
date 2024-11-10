@@ -342,9 +342,13 @@ version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
  "fern",
+ "la-arena",
+ "line-index",
  "log",
  "lsp-server",
  "lsp-types",
+ "mc-analysis",
+ "mc-source",
  "parking_lot 0.12.3",
  "serde_json",
 ]

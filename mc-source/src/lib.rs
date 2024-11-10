@@ -1,9 +1,41 @@
-use std::{collections::HashSet, marker::PhantomData, path::PathBuf, sync::Arc};
+use std::{
+  marker::PhantomData,
+  ops::{Add, Sub},
+  sync::Arc,
+};
 
-use la_arena::{Arena, Idx};
-use url::Url;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct FileLocation {
+  pub file:  FileId,
+  pub index: TextSize,
+}
 
-mod source_root;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FileRange {
+  pub file:  FileId,
+  pub range: TextRange,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TextSize(pub u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TextRange {
+  pub start: TextSize,
+  pub end:   TextSize,
+}
+
+impl Add for TextSize {
+  type Output = TextSize;
+
+  fn add(self, rhs: Self) -> Self::Output { TextSize(self.0 + rhs.0) }
+}
+
+impl Sub for TextSize {
+  type Output = TextSize;
+
+  fn sub(self, rhs: Self) -> Self::Output { TextSize(self.0 - rhs.0) }
+}
 
 #[salsa::query_group(SourceDatabaseStorage)]
 pub trait SourceDatabase: std::fmt::Debug {
@@ -13,19 +45,10 @@ pub trait SourceDatabase: std::fmt::Debug {
 
   /// Returns the current content of the file.
   #[salsa::input]
-  fn file_text(&self, file_id: RawFileId) -> Arc<str>;
+  fn file_text(&self, file_id: FileId) -> Arc<str>;
 
   /// Parses the file into the syntax tree.
-  fn parse_model(&self, file_id: FileId<Model>) -> <Model as FileType>::Source;
-
-  #[salsa::input]
-  fn file_source_root(&self, file_id: RawFileId) -> Option<SourceRootId>;
-
-  #[salsa::invoke(source_root::source_root_target)]
-  fn source_root_target(&self, id: SourceRootId) -> TargetId;
-
-  #[salsa::invoke(source_root::file_target)]
-  fn file_target(&self, file_id: RawFileId) -> Option<TargetId>;
+  fn parse_model(&self, file_id: TypedFileId<Model>) -> <Model as FileType>::Source;
 }
 
 pub trait FileType {
@@ -34,38 +57,44 @@ pub trait FileType {
   fn parse(text: &str) -> Self::Source;
 }
 
-pub struct FileId<T: FileType> {
-  raw:      RawFileId,
+pub struct TypedFileId<T: FileType> {
+  pub raw:  FileId,
   _phantom: PhantomData<T>,
 }
 
-impl<T: FileType> Clone for FileId<T> {
-  fn clone(&self) -> Self { FileId { raw: self.raw, _phantom: PhantomData } }
+impl<T: FileType> Clone for TypedFileId<T> {
+  fn clone(&self) -> Self { TypedFileId { raw: self.raw, _phantom: PhantomData } }
 }
-impl<T: FileType> Copy for FileId<T> {}
-impl<T: FileType> std::fmt::Debug for FileId<T> {
+impl<T: FileType> Copy for TypedFileId<T> {}
+impl<T: FileType> std::fmt::Debug for TypedFileId<T> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     write!(f, "FileId<{:?}>({:?})", std::any::type_name::<T>(), self.raw)
   }
 }
-impl<T: FileType> PartialEq for FileId<T> {
+impl<T: FileType> PartialEq for TypedFileId<T> {
   fn eq(&self, other: &Self) -> bool { self.raw == other.raw }
 }
-impl<T: FileType> Eq for FileId<T> {}
-impl<T: FileType> std::hash::Hash for FileId<T> {
+impl<T: FileType> Eq for TypedFileId<T> {}
+impl<T: FileType> std::hash::Hash for TypedFileId<T> {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) { self.raw.hash(state) }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RawFileId(u32);
+pub struct FileId(u32);
 
-impl<T: FileType> FileId<T> {
-  pub fn temp_new() -> Self { FileId { raw: RawFileId(0), _phantom: PhantomData } }
+impl<T: FileType> TypedFileId<T> {
+  pub fn temp_new() -> Self { TypedFileId { raw: FileId(0), _phantom: PhantomData } }
 
   /// DO NOT USE THIS! Its just for unit tests.
-  pub fn new_raw(id: u32) -> Self { FileId { raw: RawFileId(id), _phantom: PhantomData } }
+  pub fn new_raw(id: u32) -> Self { TypedFileId { raw: FileId(id), _phantom: PhantomData } }
 }
 
+impl FileId {
+  /// DO NOT USE THIS! Its just for unit tests.
+  pub fn new_raw(id: u32) -> Self { FileId(id) }
+}
+
+#[derive(Default, Debug)]
 pub struct Model;
 
 impl FileType for Model {
@@ -76,67 +105,17 @@ impl FileType for Model {
 
 #[derive(Default, Debug)]
 pub struct Workspace {
-  pub root: PathBuf,
-
-  pub targets:      Arena<TargetData>,
-  pub source_roots: Arena<SourceRoot>,
+  pub files: Vec<FileId>,
 }
 
-impl Workspace {
-  pub fn all_dependencies(&self, target: TargetId) -> DependencyIter {
-    DependencyIter { workspace: self, seen: HashSet::new(), stack: vec![target] }
-  }
-}
-
-pub struct DependencyIter<'a> {
-  workspace: &'a Workspace,
-  seen:      HashSet<TargetId>,
-  stack:     Vec<TargetId>,
-}
-
-impl Iterator for DependencyIter<'_> {
-  type Item = TargetId;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    let mut target = self.stack.pop()?;
-    while !self.seen.insert(target) {
-      target = self.stack.pop()?;
-    }
-    self.stack.extend(self.workspace.targets[target].dependencies.iter().copied());
-    Some(target)
-  }
-}
-
-/// Targets are similar to packages, but are slightly more granular. For
-/// example, one project may have a target for its main sources, and a target
-/// for its test sources.
-///
-/// Target sources are unique to each target.
-#[derive(Debug)]
-pub struct TargetData {
-  pub dependencies: Vec<TargetId>,
-
-  pub bsp_id: Url,
-
-  /// A list of directories which contain the source files for this target.
-  pub source_roots: Vec<SourceRootId>,
-}
-
-pub type TargetId = Idx<TargetData>;
-
-#[derive(Debug)]
-pub struct SourceRoot {
-  pub path:    PathBuf,
-  pub sources: Vec<RawFileId>,
-}
-
-pub type SourceRootId = Idx<SourceRoot>;
-
-fn parse<T: FileType>(db: &dyn SourceDatabase, file_id: RawFileId) -> T::Source {
+fn parse<T: FileType>(db: &dyn SourceDatabase, file_id: FileId) -> T::Source {
   let text = db.file_text(file_id);
   T::parse(&text)
 }
 
-fn parse_model(db: &dyn SourceDatabase, file_id: FileId<Model>) -> <Model as FileType>::Source {
+fn parse_model(
+  db: &dyn SourceDatabase,
+  file_id: TypedFileId<Model>,
+) -> <Model as FileType>::Source {
   parse::<Model>(db, file_id.raw)
 }
