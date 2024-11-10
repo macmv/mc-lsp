@@ -187,12 +187,23 @@ impl<'a> Lexer<'a> {
         self.ok(start, SyntaxKind::NULL)
       }
 
-      ':' => {
+      _ => {
         self.tok.eat().unwrap();
-        self.ok(start, T![:])
-      }
+        let kind = match char {
+          '[' => T!['['],
+          ']' => T![']'],
+          '{' => T!['{'],
+          '}' => T!['}'],
 
-      t => unreachable!("inner token {t:?}"),
+          ':' => T![:],
+          ',' => T![,],
+          '\"' => T!['"'],
+
+          _ => return Err(LexError::InvalidChar),
+        };
+
+        self.ok(start, kind)
+      }
     }
   }
 
