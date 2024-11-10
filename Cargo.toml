@@ -6,6 +6,7 @@ members = [
   "mc-source",
   "mc-parser",
   "mc-syntax",
+  "mc-hir",
   "mc-analysis",
   "mc-lsp",
 ]

@@ -382,6 +382,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "mc-hir"
+version = "0.1.0"
+dependencies = [
+ "la-arena",
+ "mc-source",
+ "mc-syntax",
+ "salsa",
+]
+
+[[package]]
 name = "mc-lsp"
 version = "0.1.0"
 dependencies = [
