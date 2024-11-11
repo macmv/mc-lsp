@@ -28,11 +28,11 @@ pub struct Render {
 #[derive(Clone)]
 pub struct Context {
   context: WebGl2RenderingContext,
+  texture: WebGlTexture,
 }
 
 pub struct Image {
-  image:   Rc<RefCell<HtmlImageElement>>,
-  texture: WebGlTexture,
+  image: Rc<RefCell<HtmlImageElement>>,
 }
 
 impl Render {
@@ -48,7 +48,7 @@ impl Render {
     canvas.style().set_property("width", "400px")?;
     canvas.style().set_property("height", "400px")?;
 
-    let context = Context { context };
+    let context = Context { texture: context.create_texture().unwrap(), context };
 
     let vert_shader = context.compile_shader(gl::VERTEX_SHADER, include_str!("vert.glsl"))?;
 
@@ -195,7 +195,7 @@ impl Context {
 
       let rc = Rc::new(RefCell::new(image));
 
-      let image = Image { image: rc.clone(), texture: self.context.create_texture().unwrap() };
+      let image = Image { image: rc.clone() };
       images.insert(path.to_string(), image);
     }
 
@@ -283,28 +283,36 @@ impl Context {
       )
     }
   }
+
+  pub fn setup_image(&self, width: i32, height: i32) {
+    self.context.active_texture(gl::TEXTURE0);
+    self.context.bind_texture(gl::TEXTURE_2D, Some(&self.texture));
+
+    self.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+    self.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+    self.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+    self.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+
+    self.context.tex_storage_2d(gl::TEXTURE_2D, 1, gl::RGBA8, width, height);
+  }
 }
 
 impl Image {
-  pub fn load(&self, context: &Context) {
-    context.context.active_texture(gl::TEXTURE0);
-    context.context.bind_texture(gl::TEXTURE_2D, Some(&self.texture));
-
-    context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-    context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-    context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-    context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
-
+  pub fn load(&self, context: &Context, x: i32, y: i32) {
     context
       .context
-      .tex_image_2d_with_u32_and_u32_and_html_image_element(
+      .tex_sub_image_2d_with_u32_and_u32_and_html_image_element(
         gl::TEXTURE_2D,
         0,
-        gl::RGBA as i32,
+        x,
+        y,
         gl::RGBA,
         gl::UNSIGNED_BYTE,
         &self.image.borrow(),
       )
       .unwrap();
   }
+
+  pub fn width(&self) -> i32 { self.image.borrow().width() as i32 }
+  pub fn height(&self) -> i32 { self.image.borrow().height() as i32 }
 }

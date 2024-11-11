@@ -1,5 +1,5 @@
 use core::f32;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use event::Message;
 use nalgebra::{point, vector, Matrix4, UnitQuaternion, Vector3};
@@ -52,8 +52,18 @@ fn start() -> Result<(), JsValue> {
 
         let current = current.clone();
         render.context.clone().load_images(&texture_names, move |textures| {
-          for t in textures.values() {
-            t.load(&render.context);
+          let width = textures.values().map(|t| t.width()).sum();
+          let height = textures.values().map(|t| t.height()).max().unwrap();
+          render.context.setup_image(width, height);
+
+          let mut uv_map = HashMap::new();
+
+          let mut x = 0;
+          for (k, t) in textures {
+            uv_map.insert(k, (x as f32 / width as f32, t.width() as f32 / width as f32));
+
+            t.load(&render.context, x, 0);
+            x += t.width() as i32;
           }
 
           let preview_2 = preview.clone();
