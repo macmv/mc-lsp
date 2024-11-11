@@ -1,7 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
+use core::f32;
+use std::{cell::RefCell, char::MAX, rc::Rc};
 
 use event::Message;
-use nalgebra::{point, vector, Matrix4};
+use nalgebra::{point, vector, Matrix4, UnitQuaternion, Vector3};
 use wasm_bindgen::prelude::*;
 
 mod event;
@@ -19,7 +20,11 @@ struct Preview {
   view:  Matrix4<f32>,
   model: Matrix4<f32>,
 
-  rotation_yaw: f64,
+  rotation_yaw:   f32,
+  rotation_pitch: f32,
+  zoom:           f32,
+
+  mouse_down: bool,
 }
 
 #[wasm_bindgen(start)]
@@ -40,7 +45,6 @@ fn start() -> Result<(), JsValue> {
         let render = Render::new(buffers).unwrap();
 
         let preview = Preview::new();
-        render.set_matrices(&preview.proj.data.as_slice(), &preview.view.data.as_slice());
         let preview = Rc::new(RefCell::new(preview));
 
         let textures = model.textures.clone();
@@ -57,7 +61,7 @@ fn start() -> Result<(), JsValue> {
             render.clear();
             preview_2.borrow_mut().update();
 
-            preview_2.borrow_mut().draw(render);
+            preview_2.borrow().draw(render);
           });
 
           *current.borrow_mut() = Some((preview, handle));
@@ -106,20 +110,52 @@ impl Preview {
       ),
       model: Matrix4::identity(),
 
-      rotation_yaw: 0.0,
+      rotation_pitch: 0.0,
+      rotation_yaw:   0.0,
+      zoom:           2.0,
+
+      mouse_down: false,
     }
   }
 
-  pub fn mouse_move(&mut self, _x: f32, _y: f32) {}
-  pub fn mouse_down(&mut self) {}
-  pub fn mouse_up(&mut self) {}
+  pub fn mouse_move(&mut self, x: f32, y: f32) {
+    if self.mouse_down {
+      self.rotation_pitch -= y * 0.005;
+      self.rotation_yaw -= x * 0.005;
+
+      const MAX_PITCH: f32 = f32::consts::PI / 2.0 - 0.01;
+
+      if self.rotation_pitch > MAX_PITCH {
+        self.rotation_pitch = MAX_PITCH;
+      } else if self.rotation_pitch < -MAX_PITCH {
+        self.rotation_pitch = -MAX_PITCH;
+      }
+    }
+  }
+  pub fn mouse_down(&mut self) { self.mouse_down = true; }
+  pub fn mouse_up(&mut self) { self.mouse_down = false; }
 
   fn update(&mut self) {
-    self.rotation_yaw += 0.01;
+    let y_axis = Vector3::y_axis();
+    let x_axis = Vector3::x_axis();
 
-    self.model = Matrix4::new_rotation(&vector![0.0, 1.0, 0.0] * self.rotation_yaw as f32)
-      * Matrix4::new_translation(&vector![-0.5, -0.5, -0.5]);
+    let rotation = UnitQuaternion::from_axis_angle(&y_axis, self.rotation_yaw as f32)
+      * &UnitQuaternion::from_axis_angle(&x_axis, self.rotation_pitch as f32);
+
+    self.view = Matrix4::look_at_rh(
+      &(rotation * &point![0.0, 0.0, self.zoom]),
+      &point![0.0, 0.0, 0.0],
+      &Vector3::y_axis(),
+    );
+    self.model = Matrix4::new_translation(&vector![-0.5, -0.5, -0.5]);
   }
 
-  fn draw(&mut self, render: &Render) { render.draw(self.model.data.as_slice()); }
+  fn draw(&self, render: &Render) {
+    render.set_matrices(
+      self.proj.data.as_slice(),
+      self.view.data.as_slice(),
+      self.model.data.as_slice(),
+    );
+    render.draw();
+  }
 }

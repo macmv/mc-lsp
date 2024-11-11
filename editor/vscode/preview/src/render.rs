@@ -112,7 +112,7 @@ impl Render {
     self.context.context.clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
   }
 
-  pub fn set_matrices(&self, proj: &[f32], view: &[f32]) {
+  pub fn set_matrices(&self, proj: &[f32], view: &[f32], model: &[f32]) {
     self.context.context.uniform_matrix4fv_with_f32_array(
       self.proj_uniform_location.as_ref(),
       false,
@@ -123,15 +123,14 @@ impl Render {
       false,
       view,
     );
-  }
-
-  pub fn draw(&self, model: &[f32]) {
     self.context.context.uniform_matrix4fv_with_f32_array(
       self.model_uniform_location.as_ref(),
       false,
       model,
     );
+  }
 
+  pub fn draw(&self) {
     self.context.context.uniform1i(self.tex_uniform_location.as_ref(), 0);
 
     self.context.context.draw_arrays(gl::TRIANGLES, 0, self.buffers.pos.len() as i32);
