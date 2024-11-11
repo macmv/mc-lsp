@@ -1,15 +1,34 @@
+import { readFileSync } from "fs";
 import { ExtensionContext, Uri, WebviewPanel } from "vscode";
 
-export const setupPreview = (
-  context: ExtensionContext,
-  panel: WebviewPanel
-) => {
-  const renderSrc = panel.webview.asWebviewUri(
-    Uri.joinPath(context.extensionUri, "preview", "out", "index.js")
-  );
+export class Preview {
+  context: ExtensionContext;
+  panel: WebviewPanel;
 
-  panel.webview.html = getWebviewContent(renderSrc);
-};
+  constructor(context: ExtensionContext, panel: WebviewPanel) {
+    this.context = context;
+    this.panel = panel;
+  }
+
+  setup() {
+    const renderSrc = this.panel.webview.asWebviewUri(
+      Uri.joinPath(this.context.extensionUri, "preview", "out", "index.js")
+    );
+
+    this.panel.webview.html = getWebviewContent(renderSrc);
+  }
+
+  render(model: Uri) {
+    // TODO: Fetch this from the language server, which will build the canonical model format.
+    const content = readFileSync(model.fsPath);
+
+    this.panel.webview.postMessage({
+      RenderModel: {
+        model: content,
+      },
+    });
+  }
+}
 
 const getWebviewContent = (previewSrc: Uri) => {
   return `<!DOCTYPE html>

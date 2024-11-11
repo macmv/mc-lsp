@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
@@ -9,14 +11,21 @@ extern "C" {
   fn data(this: &VsMessage) -> JsValue;
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 enum Message {
   RenderModel(Model),
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Model {
-  foo: i32,
+  textures: HashMap<String, String>,
+  elements: Vec<Element>,
+}
+
+#[derive(Deserialize, Debug)]
+struct Element {
+  from: [f32; 3],
+  to:   [f32; 3],
 }
 
 pub fn listen() -> Result<(), JsValue> {
