@@ -1,3 +1,4 @@
+use event::Message;
 use nalgebra::{point, vector, Matrix4};
 use wasm_bindgen::prelude::*;
 
@@ -5,6 +6,9 @@ mod event;
 mod render;
 
 use render::Render;
+
+#[macro_use]
+extern crate log;
 
 struct Preview {
   proj:  Matrix4<f32>,
@@ -16,20 +20,27 @@ struct Preview {
 
 #[wasm_bindgen(start)]
 fn start() -> Result<(), JsValue> {
-  let render = Render::new()?;
+  console_log::init().unwrap();
 
-  let mut preview = Preview::new();
+  event::listen(|m: Message| match m {
+    Message::RenderModel { model } => {
+      info!("{:?}", model);
+      let render = Render::new().unwrap();
 
-  let texture = "";
-  render.clone().load_images(&[texture], |textures| {
-    textures[texture].bind(&render.context);
+      let mut preview = Preview::new();
 
-    render.setup_loop(move |render| {
-      preview.draw(render);
-    });
+      let textures = model.textures.clone();
+      let texture_names = textures.values().map(|s| s.as_str()).collect::<Vec<_>>();
+
+      render.clone().load_images(&texture_names, move |textures| {
+        textures[model.textures.values().next().unwrap()].bind(&render.context);
+
+        render.setup_loop(move |render| {
+          preview.draw(render);
+        });
+      });
+    }
   });
-
-  event::listen()?;
 
   Ok(())
 }

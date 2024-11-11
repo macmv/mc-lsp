@@ -12,36 +12,39 @@ extern "C" {
 }
 
 #[derive(Deserialize, Debug)]
-enum Message {
-  RenderModel(Model),
+pub enum Message {
+  RenderModel { model: Model },
 }
 
 #[derive(Deserialize, Debug)]
-struct Model {
-  textures: HashMap<String, String>,
-  elements: Vec<Element>,
+pub struct Model {
+  pub textures: HashMap<String, String>,
+  pub elements: Vec<Element>,
 }
 
 #[derive(Deserialize, Debug)]
-struct Element {
-  from: [f32; 3],
-  to:   [f32; 3],
+pub struct Element {
+  pub from: [f32; 3],
+  pub to:   [f32; 3],
 }
 
-pub fn listen() -> Result<(), JsValue> {
+pub fn listen(mut f: impl FnMut(Message) + 'static) {
+  let closure = Closure::wrap(Box::new(move |event: VsMessage| {
+    info!("got an event!");
+
+    let message = event.data();
+
+    info!("{:?}", message);
+
+    match serde_wasm_bindgen::from_value::<Message>(message) {
+      Ok(message) => f(message),
+      Err(e) => error!("{:?}", e),
+    }
+  }) as Box<dyn FnMut(VsMessage)>);
+
   let window = web_sys::window().unwrap();
-  window.add_event_listener_with_callback(
-    "message",
-    Closure::wrap(Box::new(move |event: VsMessage| {
-      // This is quite dumb, but its better than needing to re-encode JSON to
-      // decode it with serde.
-      let message = event.data();
 
-      let _message = serde_wasm_bindgen::from_value::<Message>(message);
-    }) as Box<dyn FnMut(VsMessage)>)
-    .as_ref()
-    .unchecked_ref(),
-  )?;
+  window.add_event_listener_with_callback("message", closure.as_ref().unchecked_ref()).unwrap();
 
-  Ok(())
+  closure.forget();
 }

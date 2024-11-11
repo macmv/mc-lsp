@@ -13,7 +13,7 @@ export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "mclsp" is now active!');
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("mclsp.previewModel", () => {
+    vscode.commands.registerCommand("mclsp.previewModel", async () => {
       const panel = vscode.window.createWebviewPanel(
         "previewModel",
         "Preview Model",
@@ -24,9 +24,9 @@ export async function activate(context: vscode.ExtensionContext) {
       );
 
       const preview = new Preview(context, panel);
-      preview.setup();
+      await preview.setup();
 
-      preview.render(vscode.window.activeTextEditor?.document.uri!);
+      await preview.render(vscode.window.visibleTextEditors[0].document.uri!);
     })
   );
 
