@@ -307,9 +307,4 @@ impl Image {
       )
       .unwrap();
   }
-
-  pub fn bind(&self, context: &Context) {
-    context.context.active_texture(gl::TEXTURE0);
-    context.context.bind_texture(gl::TEXTURE_2D, Some(&self.texture));
-  }
 }

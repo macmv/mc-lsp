@@ -1,5 +1,5 @@
 use core::f32;
-use std::{cell::RefCell, char::MAX, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 use event::Message;
 use nalgebra::{point, vector, Matrix4, UnitQuaternion, Vector3};
