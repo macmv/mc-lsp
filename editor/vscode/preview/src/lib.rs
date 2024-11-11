@@ -1,5 +1,5 @@
 use event::Message;
-use nalgebra::{point, vector, Matrix4, Vector3};
+use nalgebra::{point, vector, Matrix4};
 use wasm_bindgen::prelude::*;
 
 mod event;
@@ -28,9 +28,8 @@ fn start() -> Result<(), JsValue> {
     Message::RenderModel { model } => {
       info!("rendering model {:?}", model);
 
-      let _buffers = model::render(&model);
-
-      let render = Render::new().unwrap();
+      let buffers = model::render(&model);
+      let render = Render::new(buffers).unwrap();
 
       let mut preview = Preview::new();
       render.set_matrices(&preview.proj.data.as_slice(), &preview.view.data.as_slice());
@@ -38,7 +37,7 @@ fn start() -> Result<(), JsValue> {
       let textures = model.textures.clone();
       let texture_names = textures.values().cloned().collect();
 
-      render.clone().load_images(&texture_names, move |textures| {
+      render.context.clone().load_images(&texture_names, move |textures| {
         for t in textures.values() {
           t.load(&render.context);
         }
@@ -47,18 +46,7 @@ fn start() -> Result<(), JsValue> {
           render.clear();
           preview.update();
 
-          for element in &model.elements {
-            let min =
-              Vector3::new(element.from.x / 16.0, element.from.y / 16.0, element.from.z / 16.0);
-            let max = Vector3::new(element.to.x / 16.0, element.to.y / 16.0, element.to.z / 16.0);
-
-            let scale = max - min;
-            let translation = min;
-            let transform =
-              Matrix4::new_nonuniform_scaling(&scale) * Matrix4::new_translation(&translation);
-
-            preview.draw(render, transform);
-          }
+          preview.draw(render);
         });
       });
     }
@@ -89,8 +77,5 @@ impl Preview {
       * Matrix4::new_translation(&vector![-0.5, -0.5, -0.5]);
   }
 
-  fn draw(&mut self, render: &Render, transform: Matrix4<f32>) {
-    let model = self.model * transform;
-    render.draw(model.data.as_slice());
-  }
+  fn draw(&mut self, render: &Render) { render.draw(self.model.data.as_slice()); }
 }

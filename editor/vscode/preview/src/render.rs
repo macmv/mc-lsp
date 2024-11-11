@@ -12,9 +12,11 @@ use web_sys::{
 
 use WebGl2RenderingContext as gl;
 
-#[derive(Clone)]
+use crate::model::Buffers;
+
 pub struct Render {
   pub context: Context,
+  buffers:     Buffers,
 
   proj_uniform_location:  Option<WebGlUniformLocation>,
   view_uniform_location:  Option<WebGlUniformLocation>,
@@ -34,7 +36,7 @@ pub struct Image {
 }
 
 impl Render {
-  pub fn new() -> Result<Self, JsValue> {
+  pub fn new(buffers: Buffers) -> Result<Self, JsValue> {
     let document = web_sys::window().unwrap().document().unwrap();
     let canvas = document.get_element_by_id("canvas").unwrap();
     let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
@@ -49,55 +51,11 @@ impl Render {
     let program = context.link_program(&vert_shader, &frag_shader)?;
     context.context.use_program(Some(&program));
 
-    // A 1x1x1 cube.
-    let vertices: [[f32; 3]; 8] = [
-      [0.0, 0.0, 0.0],
-      [1.0, 0.0, 0.0],
-      [1.0, 1.0, 0.0],
-      [0.0, 1.0, 0.0],
-      [0.0, 0.0, 1.0],
-      [1.0, 0.0, 1.0],
-      [1.0, 1.0, 1.0],
-      [0.0, 1.0, 1.0],
-    ];
-
-    let uvs: [[f32; 2]; 4] = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
-
-    let normals: [[f32; 3]; 6] = [
-      [0.0, 0.0, 1.0],
-      [1.0, 0.0, 0.0],
-      [0.0, 0.0, -1.0],
-      [-1.0, 0.0, 0.0],
-      [0.0, 1.0, 0.0],
-      [0.0, -1.0, 0.0],
-    ];
-
-    let indices: [u16; 6 * 6] = [
-      0, 1, 3, 3, 1, 2, // face 1
-      1, 5, 2, 2, 5, 6, // face 2
-      5, 4, 6, 6, 4, 7, // face 3
-      4, 0, 7, 7, 0, 3, // face 4
-      3, 2, 7, 7, 2, 6, // face 5
-      4, 5, 0, 0, 5, 1, // face 6
-    ];
-
-    let uv_indices = [3, 2, 0, 0, 2, 1];
-
-    let mut vert = [[0.0, 0.0, 0.0]; 6 * 6];
-    let mut uv = [[0.0, 0.0]; 6 * 6];
-    let mut normal = [[0.0, 0.0, 0.0]; 6 * 6];
-
-    for i in 0..36 {
-      vert[i] = vertices[indices[i] as usize];
-      uv[i] = uvs[uv_indices[i % 6]];
-      normal[i] = normals[indices[i / 6] as usize];
-    }
-
     let vao =
       context.context.create_vertex_array().ok_or("Could not create vertex array object")?;
     context.context.bind_vertex_array(Some(&vao));
 
-    context.create_f32_buffer(bytemuck::cast_slice(&vert))?;
+    context.create_f32_buffer(bytemuck::cast_slice(&buffers.pos))?;
     let pos_attribute_location = context.context.get_attrib_location(&program, "pos");
     context.context.vertex_attrib_pointer_with_i32(
       pos_attribute_location as u32,
@@ -109,7 +67,7 @@ impl Render {
     );
     context.context.enable_vertex_attrib_array(pos_attribute_location as u32);
 
-    context.create_f32_buffer(bytemuck::cast_slice(&uv))?;
+    context.create_f32_buffer(bytemuck::cast_slice(&buffers.uv))?;
     let uv_attribute_location = context.context.get_attrib_location(&program, "uv");
     context.context.vertex_attrib_pointer_with_i32(
       uv_attribute_location as u32,
@@ -121,7 +79,7 @@ impl Render {
     );
     context.context.enable_vertex_attrib_array(uv_attribute_location as u32);
 
-    context.create_f32_buffer(bytemuck::cast_slice(&normal))?;
+    context.create_f32_buffer(bytemuck::cast_slice(&buffers.normal))?;
     let normal_attribute_location = context.context.get_attrib_location(&program, "normal");
     context.context.vertex_attrib_pointer_with_i32(
       normal_attribute_location as u32,
@@ -141,50 +99,8 @@ impl Render {
       model_uniform_location: context.context.get_uniform_location(&program, "model"),
       tex_uniform_location: context.context.get_uniform_location(&program, "tex"),
       context,
+      buffers,
     })
-  }
-
-  pub fn load_images(
-    &self,
-    paths: &HashSet<String>,
-    on_load: impl FnOnce(&HashMap<String, Image>) + 'static,
-  ) {
-    let mut images = HashMap::new();
-    let done = Rc::new(RefCell::new(HashMap::new()));
-    let total = paths.len();
-    let on_load = Rc::new(RefCell::new(Some(on_load)));
-    for path in paths {
-      let image = HtmlImageElement::new().unwrap();
-      image.set_src(&path);
-
-      let rc = Rc::new(RefCell::new(image));
-
-      let image =
-        Image { image: rc.clone(), texture: self.context.context.create_texture().unwrap() };
-      images.insert(path.to_string(), image);
-    }
-
-    let images = Rc::new(images);
-
-    // Welcome to Clone City!
-    for (path, image) in images.iter() {
-      let path = path.clone();
-      let done = done.clone();
-      let on_load = on_load.clone();
-      let images = images.clone();
-
-      let closure = Closure::wrap(Box::new(move || {
-        let mut done = done.borrow_mut();
-        done.insert(path.clone(), ());
-        if done.len() == total {
-          on_load.take().unwrap()(&images);
-        }
-      }) as Box<dyn FnMut()>);
-
-      image.image.borrow_mut().set_onload(Some(closure.as_ref().unchecked_ref()));
-
-      std::mem::forget(closure);
-    }
   }
 
   pub fn clear(&self) {
@@ -214,7 +130,7 @@ impl Render {
 
     self.context.context.uniform1i(self.tex_uniform_location.as_ref(), 0);
 
-    self.context.context.draw_arrays(gl::TRIANGLES, 0, 6 * 6);
+    self.context.context.draw_arrays(gl::TRIANGLES, 0, self.buffers.pos.len() as i32 / 3);
   }
 
   pub fn setup_loop(self, mut f: impl FnMut(&Render) + 'static) {
@@ -239,6 +155,48 @@ impl Render {
 }
 
 impl Context {
+  pub fn load_images(
+    &self,
+    paths: &HashSet<String>,
+    on_load: impl FnOnce(&HashMap<String, Image>) + 'static,
+  ) {
+    let mut images = HashMap::new();
+    let done = Rc::new(RefCell::new(HashMap::new()));
+    let total = paths.len();
+    let on_load = Rc::new(RefCell::new(Some(on_load)));
+    for path in paths {
+      let image = HtmlImageElement::new().unwrap();
+      image.set_src(&path);
+
+      let rc = Rc::new(RefCell::new(image));
+
+      let image = Image { image: rc.clone(), texture: self.context.create_texture().unwrap() };
+      images.insert(path.to_string(), image);
+    }
+
+    let images = Rc::new(images);
+
+    // Welcome to Clone City!
+    for (path, image) in images.iter() {
+      let path = path.clone();
+      let done = done.clone();
+      let on_load = on_load.clone();
+      let images = images.clone();
+
+      let closure = Closure::wrap(Box::new(move || {
+        let mut done = done.borrow_mut();
+        done.insert(path.clone(), ());
+        if done.len() == total {
+          on_load.take().unwrap()(&images);
+        }
+      }) as Box<dyn FnMut()>);
+
+      image.image.borrow_mut().set_onload(Some(closure.as_ref().unchecked_ref()));
+
+      std::mem::forget(closure);
+    }
+  }
+
   pub fn create_f32_buffer(&self, data: &[f32]) -> Result<WebGlBuffer, String> {
     let buffer = self.context.create_buffer().ok_or("Failed to create buffer")?;
     self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
