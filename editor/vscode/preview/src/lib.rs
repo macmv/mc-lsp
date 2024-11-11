@@ -1,5 +1,5 @@
 use event::Message;
-use nalgebra::{point, vector, Matrix4};
+use nalgebra::{point, vector, Matrix4, Vector3};
 use wasm_bindgen::prelude::*;
 
 mod event;
@@ -29,6 +29,7 @@ fn start() -> Result<(), JsValue> {
       let render = Render::new().unwrap();
 
       let mut preview = Preview::new();
+      render.set_matrices(&preview.proj.data.as_slice(), &preview.view.data.as_slice());
 
       let textures = model.textures.clone();
       let texture_names = textures.values().cloned().collect();
@@ -39,7 +40,22 @@ fn start() -> Result<(), JsValue> {
         }
 
         render.setup_loop(move |render| {
-          preview.draw(render);
+          render.clear();
+          preview.update();
+
+          for element in &model.elements {
+            let min =
+              Vector3::new(element.from[0] / 16.0, element.from[1] / 16.0, element.from[2] / 16.0);
+            let max =
+              Vector3::new(element.to[0] / 16.0, element.to[1] / 16.0, element.to[2] / 16.0);
+
+            let scale = max - min;
+            let translation = min;
+            let transform =
+              Matrix4::new_nonuniform_scaling(&scale) * Matrix4::new_translation(&translation);
+
+            preview.draw(render, transform);
+          }
         });
       });
     }
@@ -63,16 +79,15 @@ impl Preview {
     }
   }
 
-  fn draw(&mut self, render: &Render) {
+  fn update(&mut self) {
     self.rotation_yaw += 0.01;
 
     self.model = Matrix4::new_rotation(&vector![0.0, 1.0, 0.0] * self.rotation_yaw as f32)
       * Matrix4::new_translation(&vector![-0.5, -0.5, -0.5]);
+  }
 
-    render.draw(
-      &self.proj.data.as_slice(),
-      &self.view.data.as_slice(),
-      &self.model.data.as_slice(),
-    );
+  fn draw(&mut self, render: &Render, transform: Matrix4<f32>) {
+    let model = self.model * transform;
+    render.draw(model.data.as_slice());
   }
 }

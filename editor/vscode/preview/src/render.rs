@@ -187,10 +187,12 @@ impl Render {
     }
   }
 
-  pub fn draw(&self, proj: &[f32], view: &[f32], model: &[f32]) {
+  pub fn clear(&self) {
     self.context.context.clear_color(0.0, 0.0, 0.0, 1.0);
     self.context.context.clear(gl::COLOR_BUFFER_BIT);
+  }
 
+  pub fn set_matrices(&self, proj: &[f32], view: &[f32]) {
     self.context.context.uniform_matrix4fv_with_f32_array(
       self.proj_uniform_location.as_ref(),
       false,
@@ -201,6 +203,9 @@ impl Render {
       false,
       view,
     );
+  }
+
+  pub fn draw(&self, model: &[f32]) {
     self.context.context.uniform_matrix4fv_with_f32_array(
       self.model_uniform_location.as_ref(),
       false,
