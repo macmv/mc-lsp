@@ -48,6 +48,17 @@ impl Render {
       [0.0, 1.0, 1.0],
     ];
 
+    let uvs: [[f32; 2]; 4] = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]];
+
+    let normals: [[f32; 3]; 6] = [
+      [0.0, 0.0, 1.0],
+      [1.0, 0.0, 0.0],
+      [0.0, 0.0, -1.0],
+      [-1.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0],
+      [0.0, -1.0, 0.0],
+    ];
+
     let indices: [u16; 6 * 6] = [
       0, 1, 3, 3, 1, 2, // face 1
       1, 5, 2, 2, 5, 6, // face 2
@@ -57,29 +68,29 @@ impl Render {
       4, 5, 0, 0, 5, 1, // face 6
     ];
 
+    let uv_indices = [0, 1, 3, 3, 1, 2];
+
+    let mut vert = [[0.0, 0.0, 0.0]; 6 * 6];
+    let mut uv = [[0.0, 0.0]; 6 * 6];
+    let mut normal = [[0.0, 0.0, 0.0]; 6 * 6];
+
+    for i in 0..36 {
+      vert[i] = vertices[indices[i] as usize];
+      uv[i] = uv[uv_indices[i % 4]];
+      normal[i] = normals[indices[i / 6] as usize];
+    }
+
     let vao = context.create_vertex_array().ok_or("Could not create vertex array object")?;
     context.bind_vertex_array(Some(&vao));
 
     let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
     context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
     unsafe {
-      let positions_array_buf_view = js_sys::Float32Array::view(bytemuck::cast_slice(&vertices));
+      let positions_array_buf_view = js_sys::Float32Array::view(bytemuck::cast_slice(&vert));
 
       context.buffer_data_with_array_buffer_view(
         WebGl2RenderingContext::ARRAY_BUFFER,
         &positions_array_buf_view,
-        WebGl2RenderingContext::STATIC_DRAW,
-      );
-    }
-
-    let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&buffer));
-    unsafe {
-      let indices_buf_view = js_sys::Uint16Array::view(bytemuck::cast_slice(&indices));
-
-      context.buffer_data_with_array_buffer_view(
-        WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-        &indices_buf_view,
         WebGl2RenderingContext::STATIC_DRAW,
       );
     }
@@ -160,12 +171,7 @@ impl Render {
 
     self.context.uniform1i(self.tex_uniform_location.as_ref(), 0);
 
-    self.context.draw_elements_with_i32(
-      WebGl2RenderingContext::TRIANGLES,
-      6 * 3 * 2,
-      WebGl2RenderingContext::UNSIGNED_SHORT,
-      0,
-    );
+    self.context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, 6 * 6);
   }
 
   pub fn setup_loop(self, mut f: impl FnMut(&Render) + 'static) {
