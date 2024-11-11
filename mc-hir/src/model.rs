@@ -4,10 +4,12 @@ use la_arena::{Arena, Idx, RawIdx};
 use mc_source::FileId;
 use mc_syntax::{ast, AstPtr};
 
-use crate::HirDatabase;
+use crate::{HirDatabase, Path};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct Model {
+  pub parent: Option<ModelPath>,
+
   pub nodes: Arena<Node>,
 
   pub texture_defs: Vec<NodeId>,
@@ -33,6 +35,9 @@ pub struct ModelSourceMap {
   pub elements:     HashMap<NodeId, AstPtr<ast::Object>>,
   pub faces:        HashMap<NodeId, AstPtr<ast::Object>>,
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ModelPath(Path);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct TextureDef {
@@ -84,7 +89,7 @@ struct Parser<'a> {
 pub fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> (Arc<Model>, Arc<ModelSourceMap>) {
   let json = db.parse_json(file_id);
 
-  let mut model = Model { nodes: Arena::new(), texture_defs: Vec::new() };
+  let mut model = Model::default();
   let mut source_map = ModelSourceMap::default();
   let mut parser = Parser { model: &mut model, source_map: &mut source_map };
 
@@ -97,10 +102,16 @@ impl Parser<'_> {
   fn parse_root(&mut self, json: &ast::Json) {
     let Some(root) = json.value() else { return };
     self.parse_object(root, |p, _, key, value| match key {
+      "parent" => p.model.parent = p.parse_path(value),
       "textures" => p.parse_textures(value),
       "elements" => p.parse_elements(value),
       _ => {}
     });
+  }
+
+  fn parse_path(&mut self, p: ast::Value) -> Option<ModelPath> {
+    let path = p.as_str()?;
+    Some(ModelPath(path.parse().ok()?))
   }
 
   fn parse_textures(&mut self, textures: ast::Value) {

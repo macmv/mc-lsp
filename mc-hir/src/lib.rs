@@ -4,6 +4,9 @@ use mc_source::{FileId, SourceDatabase};
 use model::Model;
 
 pub mod model;
+mod path;
+
+pub use path::Path;
 
 #[salsa::query_group(HirDatabaseStorage)]
 pub trait HirDatabase: SourceDatabase {
