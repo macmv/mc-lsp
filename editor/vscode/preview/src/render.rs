@@ -1,8 +1,12 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{
+  cell::RefCell,
+  collections::{HashMap, HashSet},
+  rc::Rc,
+};
 
 use wasm_bindgen::prelude::*;
 use web_sys::{
-  HtmlImageElement, WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlShader,
+  HtmlImageElement, WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlShader, WebGlTexture,
   WebGlUniformLocation,
 };
 
@@ -23,7 +27,8 @@ pub struct Context {
 }
 
 pub struct Image {
-  image: Rc<RefCell<HtmlImageElement>>,
+  image:   Rc<RefCell<HtmlImageElement>>,
+  texture: WebGlTexture,
 }
 
 impl Render {
@@ -141,19 +146,22 @@ impl Render {
 
   pub fn load_images(
     &self,
-    paths: &[&str],
+    paths: &HashSet<String>,
     on_load: impl FnOnce(&HashMap<String, Image>) + 'static,
   ) {
     let mut images = HashMap::new();
     let done = Rc::new(RefCell::new(HashMap::new()));
     let total = paths.len();
     let on_load = Rc::new(RefCell::new(Some(on_load)));
-    for &path in paths {
+    for path in paths {
       let image = HtmlImageElement::new().unwrap();
-      image.set_src(path);
+      image.set_src(&path);
 
       let rc = Rc::new(RefCell::new(image));
-      images.insert(path.to_string(), Image { image: rc.clone() });
+
+      let image =
+        Image { image: rc.clone(), texture: self.context.context.create_texture().unwrap() };
+      images.insert(path.to_string(), image);
     }
 
     let images = Rc::new(images);
@@ -300,12 +308,11 @@ impl Context {
 }
 
 impl Image {
-  pub fn bind(&self, context: &Context) {
+  pub fn load(&self, context: &Context) {
     use WebGl2RenderingContext as gl;
 
-    let texture = context.context.create_texture().unwrap();
     context.context.active_texture(gl::TEXTURE0);
-    context.context.bind_texture(gl::TEXTURE_2D, Some(&texture));
+    context.context.bind_texture(gl::TEXTURE_2D, Some(&self.texture));
 
     context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
     context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
@@ -323,5 +330,12 @@ impl Image {
         &self.image.borrow(),
       )
       .unwrap();
+  }
+
+  pub fn bind(&self, context: &Context) {
+    use WebGl2RenderingContext as gl;
+
+    context.context.active_texture(gl::TEXTURE0);
+    context.context.bind_texture(gl::TEXTURE_2D, Some(&self.texture));
   }
 }

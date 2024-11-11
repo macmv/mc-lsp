@@ -30,15 +30,13 @@ fn start() -> Result<(), JsValue> {
 
       let mut preview = Preview::new();
 
-      // let textures = model.textures.clone();
-      // let texture_names = textures.values().map(|s|
-      // s.as_str()).collect::<Vec<_>>();
+      let textures = model.textures.clone();
+      let texture_names = textures.values().cloned().collect();
 
-      let texture = model.textures.iter().next().unwrap().1.clone();
-
-      let t = texture.clone();
-      render.clone().load_images(&[&t], move |textures| {
-        textures[&texture].bind(&render.context);
+      render.clone().load_images(&texture_names, move |textures| {
+        for t in textures.values() {
+          t.load(&render.context);
+        }
 
         render.setup_loop(move |render| {
           preview.draw(render);
