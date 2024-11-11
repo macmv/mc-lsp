@@ -28,42 +28,69 @@ fn start() -> Result<(), JsValue> {
 
   let current = Rc::new(RefCell::new(None));
 
-  event::listen(move |m: Message| match m {
-    Message::RenderModel { model } => {
-      info!("rendering model {:?}", model);
+  {
+    let current = current.clone();
+    event::listen(move |m: Message| match m {
+      Message::RenderModel { model } => {
+        info!("rendering model {:?}", model);
 
-      current.borrow_mut().take();
+        current.borrow_mut().take();
 
-      let buffers = model::render(&model);
-      let render = Render::new(buffers).unwrap();
+        let buffers = model::render(&model);
+        let render = Render::new(buffers).unwrap();
 
-      let mut preview = Preview::new();
-      render.set_matrices(&preview.proj.data.as_slice(), &preview.view.data.as_slice());
+        let preview = Preview::new();
+        render.set_matrices(&preview.proj.data.as_slice(), &preview.view.data.as_slice());
+        let preview = Rc::new(RefCell::new(preview));
 
-      let textures = model.textures.clone();
-      let texture_names = textures.values().cloned().collect();
+        let textures = model.textures.clone();
+        let texture_names = textures.values().cloned().collect();
 
-      let current = current.clone();
-      render.context.clone().load_images(&texture_names, move |textures| {
-        for t in textures.values() {
-          t.load(&render.context);
-        }
+        let current = current.clone();
+        render.context.clone().load_images(&texture_names, move |textures| {
+          for t in textures.values() {
+            t.load(&render.context);
+          }
 
-        let handle = render.setup_loop(move |render| {
-          render.clear();
-          preview.update();
+          let preview_2 = preview.clone();
+          let handle = render.setup_loop(move |render| {
+            render.clear();
+            preview_2.borrow_mut().update();
 
-          preview.draw(render);
+            preview_2.borrow_mut().draw(render);
+          });
+
+          *current.borrow_mut() = Some((preview, handle));
         });
+      }
+    });
+  }
 
-        *current.borrow_mut() = Some(handle);
-      });
-    }
-  });
+  {
+    let current = current.clone();
+    event::on_mouse_move(move |x, y| {
+      if let Some((preview, _)) = current.borrow().as_ref() {
+        preview.borrow_mut().mouse_move(x, y);
+      }
+    });
+  }
 
-  event::on_mouse_move(|x, y| {
-    info!("mouse move: x={}, y={}", x, y);
-  });
+  {
+    let current = current.clone();
+    event::on_mouse_down(move || {
+      if let Some((preview, _)) = current.borrow().as_ref() {
+        preview.borrow_mut().mouse_down();
+      }
+    });
+  }
+  {
+    let current = current.clone();
+    event::on_mouse_up(move || {
+      if let Some((preview, _)) = current.borrow().as_ref() {
+        preview.borrow_mut().mouse_up();
+      }
+    });
+  }
 
   Ok(())
 }
@@ -82,6 +109,10 @@ impl Preview {
       rotation_yaw: 0.0,
     }
   }
+
+  pub fn mouse_move(&mut self, _x: f32, _y: f32) {}
+  pub fn mouse_down(&mut self) {}
+  pub fn mouse_up(&mut self) {}
 
   fn update(&mut self) {
     self.rotation_yaw += 0.01;

@@ -20,6 +20,16 @@ extern "C" {
   fn movementY(this: &MouseMove) -> f32;
 }
 
+#[wasm_bindgen]
+extern "C" {
+  type MouseDown;
+}
+
+#[wasm_bindgen]
+extern "C" {
+  type MouseUp;
+}
+
 #[derive(Deserialize, Debug)]
 pub enum Message {
   RenderModel { model: json::Model },
@@ -50,6 +60,30 @@ pub fn on_mouse_move(mut f: impl FnMut(f32, f32) + 'static) {
   let window = web_sys::window().unwrap();
 
   window.set_onmousemove(Some(closure.as_ref().unchecked_ref()));
+
+  closure.forget();
+}
+
+pub fn on_mouse_down(mut f: impl FnMut() + 'static) {
+  let closure = Closure::wrap(Box::new(move |_: MouseDown| {
+    f();
+  }) as Box<dyn FnMut(MouseDown)>);
+
+  let window = web_sys::window().unwrap();
+
+  window.set_onmousedown(Some(closure.as_ref().unchecked_ref()));
+
+  closure.forget();
+}
+
+pub fn on_mouse_up(mut f: impl FnMut() + 'static) {
+  let closure = Closure::wrap(Box::new(move |_: MouseUp| {
+    f();
+  }) as Box<dyn FnMut(MouseUp)>);
+
+  let window = web_sys::window().unwrap();
+
+  window.set_onmouseup(Some(closure.as_ref().unchecked_ref()));
 
   closure.forget();
 }
