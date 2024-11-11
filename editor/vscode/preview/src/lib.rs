@@ -24,16 +24,21 @@ fn start() -> Result<(), JsValue> {
 
   event::listen(|m: Message| match m {
     Message::RenderModel { model } => {
-      info!("{:?}", model);
+      info!("rendering model {:?}", model);
+
       let render = Render::new().unwrap();
 
       let mut preview = Preview::new();
 
-      let textures = model.textures.clone();
-      let texture_names = textures.values().map(|s| s.as_str()).collect::<Vec<_>>();
+      // let textures = model.textures.clone();
+      // let texture_names = textures.values().map(|s|
+      // s.as_str()).collect::<Vec<_>>();
 
-      render.clone().load_images(&texture_names, move |textures| {
-        textures[model.textures.values().next().unwrap()].bind(&render.context);
+      let texture = model.textures.iter().next().unwrap().1.clone();
+
+      let t = texture.clone();
+      render.clone().load_images(&[&t], move |textures| {
+        textures[&texture].bind(&render.context);
 
         render.setup_loop(move |render| {
           preview.draw(render);

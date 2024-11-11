@@ -30,11 +30,7 @@ pub struct Element {
 
 pub fn listen(mut f: impl FnMut(Message) + 'static) {
   let closure = Closure::wrap(Box::new(move |event: VsMessage| {
-    info!("got an event!");
-
     let message = event.data();
-
-    info!("{:?}", message);
 
     match serde_wasm_bindgen::from_value::<Message>(message) {
       Ok(message) => f(message),
