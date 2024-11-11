@@ -28,7 +28,7 @@ impl Render {
     context.use_program(Some(&program));
 
     // A 1x1x1 cube.
-    let vertices = [
+    let vertices: [[f32; 3]; 8] = [
       [0.0, 0.0, 0.0],
       [1.0, 0.0, 0.0],
       [1.0, 1.0, 0.0],
@@ -86,7 +86,7 @@ impl Render {
     );
     context.enable_vertex_attrib_array(position_attribute_location as u32);
 
-    // context.bind_vertex_array(Some(&vao));
+    context.enable(WebGl2RenderingContext::DEPTH_TEST);
 
     Ok(Render {
       proj_uniform_location: context.get_uniform_location(&program, "proj"),
@@ -110,7 +110,7 @@ impl Render {
 
     self.context.draw_elements_with_i32(
       WebGl2RenderingContext::TRIANGLES,
-      6 * 2,
+      6 * 3 * 2,
       WebGl2RenderingContext::UNSIGNED_SHORT,
       0,
     );
