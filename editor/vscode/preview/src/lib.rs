@@ -125,11 +125,7 @@ impl Preview {
 
       const MAX_PITCH: f32 = f32::consts::PI / 2.0 - 0.01;
 
-      if self.rotation_pitch > MAX_PITCH {
-        self.rotation_pitch = MAX_PITCH;
-      } else if self.rotation_pitch < -MAX_PITCH {
-        self.rotation_pitch = -MAX_PITCH;
-      }
+      self.rotation_pitch = self.rotation_pitch.clamp(-MAX_PITCH, MAX_PITCH);
     }
   }
   pub fn mouse_down(&mut self) { self.mouse_down = true; }
@@ -139,11 +135,11 @@ impl Preview {
     let y_axis = Vector3::y_axis();
     let x_axis = Vector3::x_axis();
 
-    let rotation = UnitQuaternion::from_axis_angle(&y_axis, self.rotation_yaw as f32)
-      * &UnitQuaternion::from_axis_angle(&x_axis, self.rotation_pitch as f32);
+    let rotation = UnitQuaternion::from_axis_angle(&y_axis, self.rotation_yaw)
+      * UnitQuaternion::from_axis_angle(&x_axis, self.rotation_pitch);
 
     self.view = Matrix4::look_at_rh(
-      &(rotation * &point![0.0, 0.0, self.zoom]),
+      &(rotation * point![0.0, 0.0, self.zoom]),
       &point![0.0, 0.0, 0.0],
       &Vector3::y_axis(),
     );

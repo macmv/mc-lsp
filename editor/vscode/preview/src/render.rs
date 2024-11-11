@@ -191,7 +191,7 @@ impl Context {
     let on_load = Rc::new(RefCell::new(Some(on_load)));
     for path in paths {
       let image = HtmlImageElement::new().unwrap();
-      image.set_src(&path);
+      image.set_src(path);
 
       let rc = Rc::new(RefCell::new(image));
 

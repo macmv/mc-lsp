@@ -58,58 +58,57 @@ impl Builder<'_> {
     let p1 = element.to;
     match dir {
       Dir::Up => {
-        self.vert(element, dir, p1.x, p1.y, p1.z, u0, v0);
-        self.vert(element, dir, p1.x, p1.y, p0.z, u0, v1);
-        self.vert(element, dir, p0.x, p1.y, p0.z, u1, v1);
-        self.vert(element, dir, p0.x, p1.y, p0.z, u1, v1);
-        self.vert(element, dir, p0.x, p1.y, p1.z, u1, v0);
-        self.vert(element, dir, p1.x, p1.y, p1.z, u0, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p1.z }, u0, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p0.z }, u0, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p1.y, z: p0.z }, u1, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p1.y, z: p0.z }, u1, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p1.y, z: p1.z }, u1, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p1.z }, u0, v0);
       }
       Dir::Down => {
-        self.vert(element, dir, p0.x, p0.y, p0.z, u0, v1);
-        self.vert(element, dir, p1.x, p0.y, p0.z, u0, v0);
-        self.vert(element, dir, p1.x, p0.y, p1.z, u1, v0);
-        self.vert(element, dir, p1.x, p0.y, p1.z, u1, v0);
-        self.vert(element, dir, p0.x, p0.y, p1.z, u1, v1);
-        self.vert(element, dir, p0.x, p0.y, p0.z, u0, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p0.z }, u0, v1);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p0.y, z: p0.z }, u0, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p0.y, z: p1.z }, u1, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p0.y, z: p1.z }, u1, v0);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p1.z }, u1, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p0.z }, u0, v1);
       }
       Dir::South => {
-        self.vert(element, dir, p0.x, p0.y, p1.z, u0, v1);
-        self.vert(element, dir, p1.x, p0.y, p1.z, u1, v1);
-        self.vert(element, dir, p1.x, p1.y, p1.z, u1, v0);
-        self.vert(element, dir, p1.x, p1.y, p1.z, u1, v0);
-        self.vert(element, dir, p0.x, p1.y, p1.z, u0, v0);
-        self.vert(element, dir, p0.x, p0.y, p1.z, u0, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p1.z }, u0, v1);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p0.y, z: p1.z }, u1, v1);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p1.z }, u1, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p1.z }, u1, v0);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p1.y, z: p1.z }, u0, v0);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p1.z }, u0, v1);
       }
       Dir::North => {
-        self.vert(element, dir, p0.x, p0.y, p0.z, u1, v1);
-        self.vert(element, dir, p0.x, p1.y, p0.z, u1, v0);
-        self.vert(element, dir, p1.x, p1.y, p0.z, u0, v0);
-        self.vert(element, dir, p1.x, p1.y, p0.z, u0, v0);
-        self.vert(element, dir, p1.x, p0.y, p0.z, u0, v1);
-        self.vert(element, dir, p0.x, p0.y, p0.z, u1, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p0.z }, u1, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p1.y, z: p0.z }, u1, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p0.z }, u0, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p0.z }, u0, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p0.y, z: p0.z }, u0, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p0.z }, u1, v1);
       }
       Dir::East => {
-        self.vert(element, dir, p1.x, p0.y, p0.z, u1, v1);
-        self.vert(element, dir, p1.x, p1.y, p0.z, u1, v0);
-        self.vert(element, dir, p1.x, p1.y, p1.z, u0, v0);
-        self.vert(element, dir, p1.x, p1.y, p1.z, u0, v0);
-        self.vert(element, dir, p1.x, p0.y, p1.z, u0, v1);
-        self.vert(element, dir, p1.x, p0.y, p0.z, u1, v1);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p0.y, z: p0.z }, u1, v1);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p0.z }, u1, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p1.z }, u0, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p1.y, z: p1.z }, u0, v0);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p0.y, z: p1.z }, u0, v1);
+        self.vert(element, dir, json::Pos { x: p1.x, y: p0.y, z: p0.z }, u1, v1);
       }
       Dir::West => {
-        self.vert(element, dir, p0.x, p1.y, p1.z, u1, v0);
-        self.vert(element, dir, p0.x, p1.y, p0.z, u0, v0);
-        self.vert(element, dir, p0.x, p0.y, p0.z, u0, v1);
-        self.vert(element, dir, p0.x, p0.y, p0.z, u0, v1);
-        self.vert(element, dir, p0.x, p0.y, p1.z, u1, v1);
-        self.vert(element, dir, p0.x, p1.y, p1.z, u1, v0);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p1.y, z: p1.z }, u1, v0);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p1.y, z: p0.z }, u0, v0);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p0.z }, u0, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p0.z }, u0, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p0.y, z: p1.z }, u1, v1);
+        self.vert(element, dir, json::Pos { x: p0.x, y: p1.y, z: p1.z }, u1, v0);
       }
     }
   }
 
-  fn vert(&mut self, element: &json::Element, dir: Dir, x: f32, y: f32, z: f32, u: f32, v: f32) {
-    let mut p = json::Pos { x, y, z };
+  fn vert(&mut self, element: &json::Element, dir: Dir, mut p: json::Pos, u: f32, v: f32) {
     let mut normal = dir.as_normal();
 
     if let Some(r) = &element.rotation {
