@@ -3,9 +3,10 @@ use std::sync::Arc;
 use mc_source::{FileId, SourceDatabase};
 use model::Model;
 
+pub mod diagnostic;
 pub mod model;
-mod path;
 
+mod path;
 pub use path::Path;
 
 #[salsa::query_group(HirDatabaseStorage)]

@@ -4,7 +4,7 @@ use la_arena::{Arena, Idx, RawIdx};
 use mc_source::FileId;
 use mc_syntax::{ast, AstPtr};
 
-use crate::{HirDatabase, Path};
+use crate::{diagnostic::Diagnostics, HirDatabase, Path};
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Model {
@@ -94,6 +94,8 @@ pub fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> (Arc<Model>, Arc<Mo
   let mut parser = Parser { model: &mut model, source_map: &mut source_map };
 
   parser.parse_root(&json.tree());
+
+  let _diagnostics = Diagnostics::new();
 
   (Arc::new(model), Arc::new(source_map))
 }
