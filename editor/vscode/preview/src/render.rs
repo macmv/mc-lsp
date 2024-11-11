@@ -2,18 +2,24 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use wasm_bindgen::prelude::*;
 use web_sys::{
-  HtmlImageElement, WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation,
+  HtmlImageElement, WebGl2RenderingContext, WebGlBuffer, WebGlProgram, WebGlShader,
+  WebGlUniformLocation,
 };
 
 #[derive(Clone)]
 pub struct Render {
-  context: WebGl2RenderingContext,
+  pub context: Context,
 
   proj_uniform_location:  Option<WebGlUniformLocation>,
   view_uniform_location:  Option<WebGlUniformLocation>,
   model_uniform_location: Option<WebGlUniformLocation>,
 
   tex_uniform_location: Option<WebGlUniformLocation>,
+}
+
+#[derive(Clone)]
+pub struct Context {
+  context: WebGl2RenderingContext,
 }
 
 pub struct Image {
@@ -28,13 +34,15 @@ impl Render {
 
     let context = canvas.get_context("webgl2")?.unwrap().dyn_into::<WebGl2RenderingContext>()?;
 
+    let context = Context { context };
+
     let vert_shader =
-      compile_shader(&context, WebGl2RenderingContext::VERTEX_SHADER, include_str!("vert.glsl"))?;
+      context.compile_shader(WebGl2RenderingContext::VERTEX_SHADER, include_str!("vert.glsl"))?;
 
     let frag_shader =
-      compile_shader(&context, WebGl2RenderingContext::FRAGMENT_SHADER, include_str!("frag.glsl"))?;
-    let program = link_program(&context, &vert_shader, &frag_shader)?;
-    context.use_program(Some(&program));
+      context.compile_shader(WebGl2RenderingContext::FRAGMENT_SHADER, include_str!("frag.glsl"))?;
+    let program = context.link_program(&vert_shader, &frag_shader)?;
+    context.context.use_program(Some(&program));
 
     // A 1x1x1 cube.
     let vertices: [[f32; 3]; 8] = [
@@ -80,23 +88,14 @@ impl Render {
       normal[i] = normals[indices[i / 6] as usize];
     }
 
-    let vao = context.create_vertex_array().ok_or("Could not create vertex array object")?;
-    context.bind_vertex_array(Some(&vao));
+    let vao =
+      context.context.create_vertex_array().ok_or("Could not create vertex array object")?;
+    context.context.bind_vertex_array(Some(&vao));
 
-    let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
-    unsafe {
-      let positions_array_buf_view = js_sys::Float32Array::view(bytemuck::cast_slice(&vert));
+    context.create_f32_buffer(bytemuck::cast_slice(&vert))?;
 
-      context.buffer_data_with_array_buffer_view(
-        WebGl2RenderingContext::ARRAY_BUFFER,
-        &positions_array_buf_view,
-        WebGl2RenderingContext::STATIC_DRAW,
-      );
-    }
-
-    let position_attribute_location = context.get_attrib_location(&program, "pos");
-    context.vertex_attrib_pointer_with_i32(
+    let position_attribute_location = context.context.get_attrib_location(&program, "pos");
+    context.context.vertex_attrib_pointer_with_i32(
       position_attribute_location as u32,
       3,
       WebGl2RenderingContext::FLOAT,
@@ -104,15 +103,15 @@ impl Render {
       0,
       0,
     );
-    context.enable_vertex_attrib_array(position_attribute_location as u32);
+    context.context.enable_vertex_attrib_array(position_attribute_location as u32);
 
-    context.enable(WebGl2RenderingContext::DEPTH_TEST);
+    context.context.enable(WebGl2RenderingContext::DEPTH_TEST);
 
     Ok(Render {
-      proj_uniform_location: context.get_uniform_location(&program, "proj"),
-      view_uniform_location: context.get_uniform_location(&program, "view"),
-      model_uniform_location: context.get_uniform_location(&program, "model"),
-      tex_uniform_location: context.get_uniform_location(&program, "tex"),
+      proj_uniform_location: context.context.get_uniform_location(&program, "proj"),
+      view_uniform_location: context.context.get_uniform_location(&program, "view"),
+      model_uniform_location: context.context.get_uniform_location(&program, "model"),
+      tex_uniform_location: context.context.get_uniform_location(&program, "tex"),
       context,
     })
   }
@@ -158,20 +157,28 @@ impl Render {
   }
 
   pub fn draw(&self, proj: &[f32], view: &[f32], model: &[f32]) {
-    self.context.clear_color(0.0, 0.0, 0.0, 1.0);
-    self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+    self.context.context.clear_color(0.0, 0.0, 0.0, 1.0);
+    self.context.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-    self.context.uniform_matrix4fv_with_f32_array(self.proj_uniform_location.as_ref(), false, proj);
-    self.context.uniform_matrix4fv_with_f32_array(self.view_uniform_location.as_ref(), false, view);
-    self.context.uniform_matrix4fv_with_f32_array(
+    self.context.context.uniform_matrix4fv_with_f32_array(
+      self.proj_uniform_location.as_ref(),
+      false,
+      proj,
+    );
+    self.context.context.uniform_matrix4fv_with_f32_array(
+      self.view_uniform_location.as_ref(),
+      false,
+      view,
+    );
+    self.context.context.uniform_matrix4fv_with_f32_array(
       self.model_uniform_location.as_ref(),
       false,
       model,
     );
 
-    self.context.uniform1i(self.tex_uniform_location.as_ref(), 0);
+    self.context.context.uniform1i(self.tex_uniform_location.as_ref(), 0);
 
-    self.context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, 6 * 6);
+    self.context.context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, 6 * 6);
   }
 
   pub fn setup_loop(self, mut f: impl FnMut(&Render) + 'static) {
@@ -195,73 +202,94 @@ impl Render {
   }
 }
 
-pub fn compile_shader(
-  context: &WebGl2RenderingContext,
-  shader_type: u32,
-  source: &str,
-) -> Result<WebGlShader, String> {
-  let shader = context
-    .create_shader(shader_type)
-    .ok_or_else(|| String::from("Unable to create shader object"))?;
-  context.shader_source(&shader, source);
-  context.compile_shader(&shader);
+impl Context {
+  pub fn create_f32_buffer(&self, data: &[f32]) -> Result<WebGlBuffer, String> {
+    let buffer = self.context.create_buffer().ok_or("Failed to create buffer")?;
+    self.context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
+    unsafe {
+      let positions_array_buf_view = js_sys::Float32Array::view(data);
 
-  if context
-    .get_shader_parameter(&shader, WebGl2RenderingContext::COMPILE_STATUS)
-    .as_bool()
-    .unwrap_or(false)
-  {
-    Ok(shader)
-  } else {
-    Err(
-      context
-        .get_shader_info_log(&shader)
-        .unwrap_or_else(|| String::from("Unknown error creating shader")),
-    )
+      self.context.buffer_data_with_array_buffer_view(
+        WebGl2RenderingContext::ARRAY_BUFFER,
+        &positions_array_buf_view,
+        WebGl2RenderingContext::STATIC_DRAW,
+      );
+    }
+
+    Ok(buffer)
   }
-}
 
-pub fn link_program(
-  context: &WebGl2RenderingContext,
-  vert_shader: &WebGlShader,
-  frag_shader: &WebGlShader,
-) -> Result<WebGlProgram, String> {
-  let program =
-    context.create_program().ok_or_else(|| String::from("Unable to create shader object"))?;
+  pub fn compile_shader(&self, shader_type: u32, source: &str) -> Result<WebGlShader, String> {
+    let shader = self
+      .context
+      .create_shader(shader_type)
+      .ok_or_else(|| String::from("Unable to create shader object"))?;
+    self.context.shader_source(&shader, source);
+    self.context.compile_shader(&shader);
 
-  context.attach_shader(&program, vert_shader);
-  context.attach_shader(&program, frag_shader);
-  context.link_program(&program);
+    if self
+      .context
+      .get_shader_parameter(&shader, WebGl2RenderingContext::COMPILE_STATUS)
+      .as_bool()
+      .unwrap_or(false)
+    {
+      Ok(shader)
+    } else {
+      Err(
+        self
+          .context
+          .get_shader_info_log(&shader)
+          .unwrap_or_else(|| String::from("Unknown error creating shader")),
+      )
+    }
+  }
 
-  if context
-    .get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
-    .as_bool()
-    .unwrap_or(false)
-  {
-    Ok(program)
-  } else {
-    Err(
-      context
-        .get_program_info_log(&program)
-        .unwrap_or_else(|| String::from("Unknown error creating program object")),
-    )
+  pub fn link_program(
+    &self,
+    vert_shader: &WebGlShader,
+    frag_shader: &WebGlShader,
+  ) -> Result<WebGlProgram, String> {
+    let program = self
+      .context
+      .create_program()
+      .ok_or_else(|| String::from("Unable to create shader object"))?;
+
+    self.context.attach_shader(&program, vert_shader);
+    self.context.attach_shader(&program, frag_shader);
+    self.context.link_program(&program);
+
+    if self
+      .context
+      .get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
+      .as_bool()
+      .unwrap_or(false)
+    {
+      Ok(program)
+    } else {
+      Err(
+        self
+          .context
+          .get_program_info_log(&program)
+          .unwrap_or_else(|| String::from("Unknown error creating program object")),
+      )
+    }
   }
 }
 
 impl Image {
-  pub fn bind(&self, render: &Render) {
+  pub fn bind(&self, context: &Context) {
     use WebGl2RenderingContext as gl;
 
-    let texture = render.context.create_texture().unwrap();
-    render.context.active_texture(gl::TEXTURE0);
-    render.context.bind_texture(gl::TEXTURE_2D, Some(&texture));
+    let texture = context.context.create_texture().unwrap();
+    context.context.active_texture(gl::TEXTURE0);
+    context.context.bind_texture(gl::TEXTURE_2D, Some(&texture));
 
-    render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
-    render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
-    render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
-    render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+    context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+    context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+    context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+    context.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
 
-    render
+    context
       .context
       .tex_image_2d_with_u32_and_u32_and_html_image_element(
         gl::TEXTURE_2D,

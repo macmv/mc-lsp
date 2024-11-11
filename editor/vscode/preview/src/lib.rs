@@ -21,7 +21,7 @@ fn start() -> Result<(), JsValue> {
 
   let texture = "";
   render.clone().load_images(&[texture], |textures| {
-    textures[texture].bind(&render);
+    textures[texture].bind(&render.context);
 
     render.setup_loop(move |render| {
       preview.draw(render);
