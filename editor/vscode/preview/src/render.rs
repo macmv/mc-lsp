@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
 
@@ -112,6 +114,26 @@ impl Render {
       WebGl2RenderingContext::UNSIGNED_SHORT,
       0,
     );
+  }
+
+  pub fn setup_loop(self, mut f: impl FnMut(&Render) + 'static) {
+    // Don't look too close, you're eyes might fall out.
+    let render_func: Rc<RefCell<Option<Closure<_>>>> = Rc::new(RefCell::new(None));
+    let render_func_2 = render_func.clone();
+
+    *render_func.borrow_mut() = Some(Closure::new(move || {
+      f(&self);
+
+      let window = web_sys::window().unwrap();
+      window
+        .request_animation_frame(render_func_2.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+        .unwrap();
+    }));
+
+    let window = web_sys::window().unwrap();
+    window
+      .request_animation_frame(render_func.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+      .unwrap();
   }
 }
 
