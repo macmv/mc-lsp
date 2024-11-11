@@ -10,6 +10,8 @@ use web_sys::{
   WebGlUniformLocation,
 };
 
+use WebGl2RenderingContext as gl;
+
 #[derive(Clone)]
 pub struct Render {
   pub context: Context,
@@ -41,11 +43,9 @@ impl Render {
 
     let context = Context { context };
 
-    let vert_shader =
-      context.compile_shader(WebGl2RenderingContext::VERTEX_SHADER, include_str!("vert.glsl"))?;
+    let vert_shader = context.compile_shader(gl::VERTEX_SHADER, include_str!("vert.glsl"))?;
 
-    let frag_shader =
-      context.compile_shader(WebGl2RenderingContext::FRAGMENT_SHADER, include_str!("frag.glsl"))?;
+    let frag_shader = context.compile_shader(gl::FRAGMENT_SHADER, include_str!("frag.glsl"))?;
     let program = context.link_program(&vert_shader, &frag_shader)?;
     context.context.use_program(Some(&program));
 
@@ -102,7 +102,7 @@ impl Render {
     context.context.vertex_attrib_pointer_with_i32(
       pos_attribute_location as u32,
       3,
-      WebGl2RenderingContext::FLOAT,
+      gl::FLOAT,
       false,
       0,
       0,
@@ -114,7 +114,7 @@ impl Render {
     context.context.vertex_attrib_pointer_with_i32(
       uv_attribute_location as u32,
       2,
-      WebGl2RenderingContext::FLOAT,
+      gl::FLOAT,
       false,
       0,
       0,
@@ -126,14 +126,14 @@ impl Render {
     context.context.vertex_attrib_pointer_with_i32(
       normal_attribute_location as u32,
       3,
-      WebGl2RenderingContext::FLOAT,
+      gl::FLOAT,
       false,
       0,
       0,
     );
     context.context.enable_vertex_attrib_array(normal_attribute_location as u32);
 
-    context.context.enable(WebGl2RenderingContext::DEPTH_TEST);
+    context.context.enable(gl::DEPTH_TEST);
 
     Ok(Render {
       proj_uniform_location: context.context.get_uniform_location(&program, "proj"),
@@ -189,7 +189,7 @@ impl Render {
 
   pub fn draw(&self, proj: &[f32], view: &[f32], model: &[f32]) {
     self.context.context.clear_color(0.0, 0.0, 0.0, 1.0);
-    self.context.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+    self.context.context.clear(gl::COLOR_BUFFER_BIT);
 
     self.context.context.uniform_matrix4fv_with_f32_array(
       self.proj_uniform_location.as_ref(),
@@ -209,7 +209,7 @@ impl Render {
 
     self.context.context.uniform1i(self.tex_uniform_location.as_ref(), 0);
 
-    self.context.context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, 6 * 6);
+    self.context.context.draw_arrays(gl::TRIANGLES, 0, 6 * 6);
   }
 
   pub fn setup_loop(self, mut f: impl FnMut(&Render) + 'static) {
@@ -236,14 +236,14 @@ impl Render {
 impl Context {
   pub fn create_f32_buffer(&self, data: &[f32]) -> Result<WebGlBuffer, String> {
     let buffer = self.context.create_buffer().ok_or("Failed to create buffer")?;
-    self.context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
+    self.context.bind_buffer(gl::ARRAY_BUFFER, Some(&buffer));
     unsafe {
       let positions_array_buf_view = js_sys::Float32Array::view(data);
 
       self.context.buffer_data_with_array_buffer_view(
-        WebGl2RenderingContext::ARRAY_BUFFER,
+        gl::ARRAY_BUFFER,
         &positions_array_buf_view,
-        WebGl2RenderingContext::STATIC_DRAW,
+        gl::STATIC_DRAW,
       );
     }
 
@@ -258,12 +258,7 @@ impl Context {
     self.context.shader_source(&shader, source);
     self.context.compile_shader(&shader);
 
-    if self
-      .context
-      .get_shader_parameter(&shader, WebGl2RenderingContext::COMPILE_STATUS)
-      .as_bool()
-      .unwrap_or(false)
-    {
+    if self.context.get_shader_parameter(&shader, gl::COMPILE_STATUS).as_bool().unwrap_or(false) {
       Ok(shader)
     } else {
       Err(
@@ -289,12 +284,7 @@ impl Context {
     self.context.attach_shader(&program, frag_shader);
     self.context.link_program(&program);
 
-    if self
-      .context
-      .get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
-      .as_bool()
-      .unwrap_or(false)
-    {
+    if self.context.get_program_parameter(&program, gl::LINK_STATUS).as_bool().unwrap_or(false) {
       Ok(program)
     } else {
       Err(
@@ -309,8 +299,6 @@ impl Context {
 
 impl Image {
   pub fn load(&self, context: &Context) {
-    use WebGl2RenderingContext as gl;
-
     context.context.active_texture(gl::TEXTURE0);
     context.context.bind_texture(gl::TEXTURE_2D, Some(&self.texture));
 
@@ -333,8 +321,6 @@ impl Image {
   }
 
   pub fn bind(&self, context: &Context) {
-    use WebGl2RenderingContext as gl;
-
     context.context.active_texture(gl::TEXTURE0);
     context.context.bind_texture(gl::TEXTURE_2D, Some(&self.texture));
   }
