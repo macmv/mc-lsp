@@ -76,7 +76,7 @@ impl Render {
       4, 5, 0, 0, 5, 1, // face 6
     ];
 
-    let uv_indices = [0, 1, 3, 3, 1, 2];
+    let uv_indices = [3, 2, 0, 0, 2, 1];
 
     let mut vert = [[0.0, 0.0, 0.0]; 6 * 6];
     let mut uv = [[0.0, 0.0]; 6 * 6];
@@ -84,7 +84,7 @@ impl Render {
 
     for i in 0..36 {
       vert[i] = vertices[indices[i] as usize];
-      uv[i] = uv[uv_indices[i % 4]];
+      uv[i] = uvs[uv_indices[i % 6]];
       normal[i] = normals[indices[i / 6] as usize];
     }
 
@@ -93,17 +93,40 @@ impl Render {
     context.context.bind_vertex_array(Some(&vao));
 
     context.create_f32_buffer(bytemuck::cast_slice(&vert))?;
-
-    let position_attribute_location = context.context.get_attrib_location(&program, "pos");
+    let pos_attribute_location = context.context.get_attrib_location(&program, "pos");
     context.context.vertex_attrib_pointer_with_i32(
-      position_attribute_location as u32,
+      pos_attribute_location as u32,
       3,
       WebGl2RenderingContext::FLOAT,
       false,
       0,
       0,
     );
-    context.context.enable_vertex_attrib_array(position_attribute_location as u32);
+    context.context.enable_vertex_attrib_array(pos_attribute_location as u32);
+
+    context.create_f32_buffer(bytemuck::cast_slice(&uv))?;
+    let uv_attribute_location = context.context.get_attrib_location(&program, "uv");
+    context.context.vertex_attrib_pointer_with_i32(
+      uv_attribute_location as u32,
+      2,
+      WebGl2RenderingContext::FLOAT,
+      false,
+      0,
+      0,
+    );
+    context.context.enable_vertex_attrib_array(uv_attribute_location as u32);
+
+    context.create_f32_buffer(bytemuck::cast_slice(&normal))?;
+    let normal_attribute_location = context.context.get_attrib_location(&program, "normal");
+    context.context.vertex_attrib_pointer_with_i32(
+      normal_attribute_location as u32,
+      3,
+      WebGl2RenderingContext::FLOAT,
+      false,
+      0,
+      0,
+    );
+    context.context.enable_vertex_attrib_array(normal_attribute_location as u32);
 
     context.context.enable(WebGl2RenderingContext::DEPTH_TEST);
 
