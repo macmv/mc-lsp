@@ -30,6 +30,7 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
+  /*
   const exec: Executable = {
     command: "/home/macmv/Desktop/programming/rust/mclsp/target/release/mc-lsp",
     transport: TransportKind.stdio,
@@ -59,7 +60,8 @@ export async function activate(context: vscode.ExtensionContext) {
     clientOptions
   );
 
-  // await client.start();
+  await client.start();
+  */
 }
 
 export function deactivate() {}
