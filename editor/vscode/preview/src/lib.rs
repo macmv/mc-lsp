@@ -17,22 +17,34 @@ fn start() -> Result<(), JsValue> {
   let program = link_program(&context, &vert_shader, &frag_shader)?;
   context.use_program(Some(&program));
 
-  let vertices: [f32; 9] = [-0.7, -0.7, 0.0, 0.7, -0.7, 0.0, 0.0, 0.7, 0.0];
+  // A 1x1x1 cube.
+  let vertices = [
+    [0.0, 0.0, 0.0],
+    [1.0, 0.0, 0.0],
+    [1.0, 1.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0],
+    [1.0, 0.0, 1.0],
+    [1.0, 1.0, 1.0],
+    [0.0, 1.0, 1.0],
+  ];
 
-  let position_attribute_location = context.get_attrib_location(&program, "pos");
+  let indices: [u16; 6 * 6] = [
+    0, 1, 3, 3, 1, 2, // face 1
+    1, 5, 2, 2, 5, 6, // face 2
+    5, 4, 6, 6, 4, 7, // face 3
+    4, 0, 7, 7, 0, 3, // face 4
+    3, 2, 7, 7, 2, 6, // face 5
+    4, 5, 0, 0, 5, 1, // face 6
+  ];
+
+  let vao = context.create_vertex_array().ok_or("Could not create vertex array object")?;
+  context.bind_vertex_array(Some(&vao));
+
   let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
   context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
-
-  // Note that `Float32Array::view` is somewhat dangerous (hence the
-  // `unsafe`!). This is creating a raw view into our module's
-  // `WebAssembly.Memory` buffer, but if we allocate more pages for ourself
-  // (aka do a memory allocation in Rust) it'll cause the buffer to change,
-  // causing the `Float32Array` to be invalid.
-  //
-  // As a result, after `Float32Array::view` we have to be very careful not to
-  // do any memory allocations before it's dropped.
   unsafe {
-    let positions_array_buf_view = js_sys::Float32Array::view(&vertices);
+    let positions_array_buf_view = js_sys::Float32Array::view(bytemuck::cast_slice(&vertices));
 
     context.buffer_data_with_array_buffer_view(
       WebGl2RenderingContext::ARRAY_BUFFER,
@@ -41,9 +53,19 @@ fn start() -> Result<(), JsValue> {
     );
   }
 
-  let vao = context.create_vertex_array().ok_or("Could not create vertex array object")?;
-  context.bind_vertex_array(Some(&vao));
+  let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
+  context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&buffer));
+  unsafe {
+    let indices_buf_view = js_sys::Uint16Array::view(bytemuck::cast_slice(&indices));
 
+    context.buffer_data_with_array_buffer_view(
+      WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+      &indices_buf_view,
+      WebGl2RenderingContext::STATIC_DRAW,
+    );
+  }
+
+  let position_attribute_location = context.get_attrib_location(&program, "pos");
   context.vertex_attrib_pointer_with_i32(
     position_attribute_location as u32,
     3,
@@ -54,10 +76,9 @@ fn start() -> Result<(), JsValue> {
   );
   context.enable_vertex_attrib_array(position_attribute_location as u32);
 
-  context.bind_vertex_array(Some(&vao));
+  // context.bind_vertex_array(Some(&vao));
 
-  let vert_count = (vertices.len() / 3) as i32;
-  draw(&context, vert_count);
+  draw(&context, (indices.len() / 3) as i32);
 
   Ok(())
 }
@@ -66,7 +87,12 @@ fn draw(context: &WebGl2RenderingContext, vert_count: i32) {
   context.clear_color(0.0, 0.0, 0.0, 1.0);
   context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-  context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vert_count);
+  context.draw_elements_with_i32(
+    WebGl2RenderingContext::TRIANGLES,
+    vert_count,
+    WebGl2RenderingContext::UNSIGNED_SHORT,
+    0,
+  );
 }
 
 pub fn compile_shader(
