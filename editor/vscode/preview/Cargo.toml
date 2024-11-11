@@ -21,6 +21,7 @@ version = "0.3.72"
 features = [
   'Document',
   'Element',
+  'CssStyleDeclaration',
   'HtmlCanvasElement',
   'HtmlImageElement',
   'WebGlBuffer',

@@ -43,6 +43,11 @@ impl Render {
 
     let context = canvas.get_context("webgl2")?.unwrap().dyn_into::<WebGl2RenderingContext>()?;
 
+    canvas.set_width(800);
+    canvas.set_height(800);
+    canvas.style().set_property("width", "400px")?;
+    canvas.style().set_property("height", "400px")?;
+
     let context = Context { context };
 
     let vert_shader = context.compile_shader(gl::VERTEX_SHADER, include_str!("vert.glsl"))?;
