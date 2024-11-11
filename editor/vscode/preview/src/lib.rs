@@ -1,6 +1,7 @@
 use nalgebra::{point, vector, Matrix4};
 use wasm_bindgen::prelude::*;
 
+mod event;
 mod render;
 
 use render::Render;
@@ -27,6 +28,8 @@ fn start() -> Result<(), JsValue> {
       preview.draw(render);
     });
   });
+
+  event::listen()?;
 
   Ok(())
 }
