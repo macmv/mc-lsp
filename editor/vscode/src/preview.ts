@@ -2,10 +2,10 @@ import { ExtensionContext, Uri, WebviewPanel } from "vscode";
 
 export const setupPreview = (
   context: ExtensionContext,
-  panel: WebviewPanel,
+  panel: WebviewPanel
 ) => {
   const renderSrc = panel.webview.asWebviewUri(
-    Uri.joinPath(context.extensionUri, "preview", "out", "index.js"),
+    Uri.joinPath(context.extensionUri, "preview", "out", "index.js")
   );
 
   panel.webview.html = getWebviewContent(renderSrc);

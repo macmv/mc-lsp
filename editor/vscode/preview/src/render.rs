@@ -1,14 +1,21 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
+use web_sys::{
+  HtmlImageElement, WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation,
+};
 
+#[derive(Clone)]
 pub struct Render {
   context: WebGl2RenderingContext,
 
   proj_uniform_location:  Option<WebGlUniformLocation>,
   view_uniform_location:  Option<WebGlUniformLocation>,
   model_uniform_location: Option<WebGlUniformLocation>,
+}
+
+pub struct Image {
+  image: Rc<RefCell<HtmlImageElement>>,
 }
 
 impl Render {
@@ -94,6 +101,46 @@ impl Render {
       model_uniform_location: context.get_uniform_location(&program, "model"),
       context,
     })
+  }
+
+  pub fn load_images(
+    &self,
+    paths: &[&str],
+    on_load: impl FnOnce(&HashMap<String, Image>) + 'static,
+  ) {
+    let mut images = HashMap::new();
+    let done = Rc::new(RefCell::new(HashMap::new()));
+    let total = paths.len();
+    let on_load = Rc::new(RefCell::new(Some(on_load)));
+    for &path in paths {
+      let image = HtmlImageElement::new().unwrap();
+      image.set_src(path);
+
+      let rc = Rc::new(RefCell::new(image));
+      images.insert(path.to_string(), Image { image: rc.clone() });
+    }
+
+    let images = Rc::new(images);
+
+    // Welcome to Clone City!
+    for (path, image) in images.iter() {
+      let path = path.clone();
+      let done = done.clone();
+      let on_load = on_load.clone();
+      let images = images.clone();
+
+      let closure = Closure::wrap(Box::new(move || {
+        let mut done = done.borrow_mut();
+        done.insert(path.clone(), ());
+        if done.len() == total {
+          on_load.take().unwrap()(&images);
+        }
+      }) as Box<dyn FnMut()>);
+
+      image.image.borrow_mut().set_onload(Some(closure.as_ref().unchecked_ref()));
+
+      std::mem::forget(closure);
+    }
   }
 
   pub fn draw(&self, proj: &[f32], view: &[f32], model: &[f32]) {
@@ -187,5 +234,31 @@ pub fn link_program(
         .get_program_info_log(&program)
         .unwrap_or_else(|| String::from("Unknown error creating program object")),
     )
+  }
+}
+
+impl Image {
+  pub fn bind(&self, render: &Render) {
+    use WebGl2RenderingContext as gl;
+
+    let texture = render.context.create_texture().unwrap();
+    render.context.bind_texture(gl::TEXTURE_2D, Some(&texture));
+
+    render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
+    render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
+    render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
+    render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
+
+    render
+      .context
+      .tex_image_2d_with_u32_and_u32_and_html_image_element(
+        gl::TEXTURE_2D,
+        0,
+        gl::RGBA as i32,
+        gl::RGBA,
+        gl::UNSIGNED_BYTE,
+        &self.image.borrow(),
+      )
+      .unwrap();
   }
 }

@@ -19,8 +19,13 @@ fn start() -> Result<(), JsValue> {
 
   let mut preview = Preview::new();
 
-  render.setup_loop(move |render| {
-    preview.draw(render);
+  let texture = "";
+  render.clone().load_images(&[texture], |textures| {
+    textures[texture].bind(&render);
+
+    render.setup_loop(move |render| {
+      preview.draw(render);
+    });
   });
 
   Ok(())
