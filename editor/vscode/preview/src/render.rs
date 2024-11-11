@@ -1,8 +1,12 @@
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
+use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
 
 pub struct Render {
   context: WebGl2RenderingContext,
+
+  proj_uniform_location:  Option<WebGlUniformLocation>,
+  view_uniform_location:  Option<WebGlUniformLocation>,
+  model_uniform_location: Option<WebGlUniformLocation>,
 }
 
 impl Render {
@@ -82,12 +86,25 @@ impl Render {
 
     // context.bind_vertex_array(Some(&vao));
 
-    Ok(Render { context })
+    Ok(Render {
+      proj_uniform_location: context.get_uniform_location(&program, "proj"),
+      view_uniform_location: context.get_uniform_location(&program, "view"),
+      model_uniform_location: context.get_uniform_location(&program, "model"),
+      context,
+    })
   }
 
-  pub fn draw(&self) {
+  pub fn draw(&self, proj: &[f32], view: &[f32], model: &[f32]) {
     self.context.clear_color(0.0, 0.0, 0.0, 1.0);
     self.context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
+    self.context.uniform_matrix4fv_with_f32_array(self.proj_uniform_location.as_ref(), false, proj);
+    self.context.uniform_matrix4fv_with_f32_array(self.view_uniform_location.as_ref(), false, view);
+    self.context.uniform_matrix4fv_with_f32_array(
+      self.model_uniform_location.as_ref(),
+      false,
+      model,
+    );
 
     self.context.draw_elements_with_i32(
       WebGl2RenderingContext::TRIANGLES,
