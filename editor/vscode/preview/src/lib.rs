@@ -56,13 +56,21 @@ fn start() -> Result<(), JsValue> {
 
           let mut x = 0;
           for (k, t) in textures {
-            uv_map.insert(k, (x as f32 / width as f32, t.width() as f32 / width as f32));
+            uv_map.insert(
+              k.as_str(),
+              (
+                x as f32 / width as f32,
+                0.0,
+                t.width() as f32 / width as f32,
+                t.height() as f32 / height as f32,
+              ),
+            );
 
             t.load(&context, x, 0);
             x += t.width() as i32;
           }
 
-          let buffers = model::render(&model);
+          let buffers = model::render(&model, &uv_map);
           let render = Render::new(context, buffers).unwrap();
 
           let preview = Preview::new();

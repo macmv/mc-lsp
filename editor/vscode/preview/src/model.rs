@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::{collections::HashMap, ops::Index};
 
 use crate::json;
 
@@ -12,12 +12,13 @@ pub struct Buffers {
 struct Builder<'a> {
   buffers: &'a mut Buffers,
   model:   &'a json::Model,
+  uv_map:  &'a HashMap<&'a str, (f32, f32, f32, f32)>,
 }
 
-pub fn render(model: &json::Model) -> Buffers {
+pub fn render(model: &json::Model, uv_map: &HashMap<&str, (f32, f32, f32, f32)>) -> Buffers {
   let mut buffers = Buffers::default();
 
-  let mut builder = Builder { buffers: &mut buffers, model };
+  let mut builder = Builder { buffers: &mut buffers, model, uv_map };
   for element in model.elements.iter() {
     builder.render_element(element);
   }
@@ -47,12 +48,14 @@ impl Builder<'_> {
   fn render_face(&mut self, element: &json::Element, face: &json::Face, dir: Dir) {
     let Some(key) = face.texture.strip_prefix("#") else { return };
     // TODO: Pack in all the textures to an atlas.
-    let Some(_) = self.model.textures.get(key) else { return };
+    let Some(texture) = self.model.textures.get(key) else { return };
 
-    let u0 = face.uv[0] / 16.0;
-    let v0 = face.uv[1] / 16.0;
-    let u1 = face.uv[2] / 16.0;
-    let v1 = face.uv[3] / 16.0;
+    let (u_min, v_min, u_width, v_height) = self.uv_map[texture.as_str()];
+
+    let u0 = (face.uv[0] / 16.0) * u_width + u_min;
+    let v0 = (face.uv[1] / 16.0) * v_height + v_min;
+    let u1 = (face.uv[2] / 16.0) * u_width + u_min;
+    let v1 = (face.uv[3] / 16.0) * v_height + v_min;
 
     let p0 = element.from;
     let p1 = element.to;
