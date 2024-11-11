@@ -110,8 +110,8 @@ impl Preview {
       ),
       model: Matrix4::identity(),
 
-      rotation_pitch: 0.0,
-      rotation_yaw:   0.0,
+      rotation_pitch: -f32::consts::PI / 6.0,
+      rotation_yaw:   f32::consts::PI / 4.0,
       zoom:           2.0,
 
       mouse_down: false,
