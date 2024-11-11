@@ -12,6 +12,8 @@ pub struct Render {
   proj_uniform_location:  Option<WebGlUniformLocation>,
   view_uniform_location:  Option<WebGlUniformLocation>,
   model_uniform_location: Option<WebGlUniformLocation>,
+
+  tex_uniform_location: Option<WebGlUniformLocation>,
 }
 
 pub struct Image {
@@ -99,6 +101,7 @@ impl Render {
       proj_uniform_location: context.get_uniform_location(&program, "proj"),
       view_uniform_location: context.get_uniform_location(&program, "view"),
       model_uniform_location: context.get_uniform_location(&program, "model"),
+      tex_uniform_location: context.get_uniform_location(&program, "tex"),
       context,
     })
   }
@@ -154,6 +157,8 @@ impl Render {
       false,
       model,
     );
+
+    self.context.uniform1i(self.tex_uniform_location.as_ref(), 0);
 
     self.context.draw_elements_with_i32(
       WebGl2RenderingContext::TRIANGLES,
@@ -242,6 +247,7 @@ impl Image {
     use WebGl2RenderingContext as gl;
 
     let texture = render.context.create_texture().unwrap();
+    render.context.active_texture(gl::TEXTURE0);
     render.context.bind_texture(gl::TEXTURE_2D, Some(&texture));
 
     render.context.tex_parameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);

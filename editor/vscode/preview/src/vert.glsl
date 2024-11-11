@@ -11,5 +11,5 @@ out vec2 f_uv;
 void main() {
   gl_Position = proj * view * model * pos;
 
-  f_uv = vec2(0.2, 0);
+  f_uv = pos.xy;
 }
