@@ -69,7 +69,7 @@ impl Preview {
     Preview {
       proj:  Matrix4::new_perspective(1.0, 1.0, 0.1, 100.0),
       view:  Matrix4::look_at_rh(
-        &point![0.0, 4.0, 5.0],
+        &point![0.0, 1.5, 2.0],
         &point![0.0, 0.0, 0.0],
         &vector![0.0, 1.0, 0.0],
       ),
