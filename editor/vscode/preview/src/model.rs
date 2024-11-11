@@ -11,12 +11,13 @@ pub struct Buffers {
 
 struct Builder<'a> {
   buffers: &'a mut Buffers,
+  model:   &'a json::Model,
 }
 
 pub fn render(model: &json::Model) -> Buffers {
   let mut buffers = Buffers::default();
 
-  let mut builder = Builder { buffers: &mut buffers };
+  let mut builder = Builder { buffers: &mut buffers, model };
   for element in model.elements.iter() {
     builder.render_element(element);
   }
@@ -44,6 +45,10 @@ impl Builder<'_> {
   }
 
   fn render_face(&mut self, element: &json::Element, face: &json::Face, dir: Dir) {
+    let Some(key) = face.texture.strip_prefix("#") else { return };
+    // TODO: Pack in all the textures to an atlas.
+    let Some(_) = self.model.textures.get(key) else { return };
+
     let u0 = face.uv[0] / 16.0;
     let v0 = face.uv[1] / 16.0;
     let u1 = face.uv[2] / 16.0;
