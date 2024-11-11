@@ -10,7 +10,7 @@ mod json;
 mod model;
 mod render;
 
-use render::Render;
+use render::{Context, Render};
 
 #[macro_use]
 extern crate log;
@@ -41,20 +41,16 @@ fn start() -> Result<(), JsValue> {
 
         current.borrow_mut().take();
 
-        let buffers = model::render(&model);
-        let render = Render::new(buffers).unwrap();
-
-        let preview = Preview::new();
-        let preview = Rc::new(RefCell::new(preview));
+        let context = Context::new().unwrap();
 
         let textures = model.textures.clone();
         let texture_names = textures.values().cloned().collect();
 
         let current = current.clone();
-        render.context.clone().load_images(&texture_names, move |textures| {
+        context.clone().load_images(&texture_names, move |textures| {
           let width = textures.values().map(|t| t.width()).sum();
           let height = textures.values().map(|t| t.height()).max().unwrap();
-          render.context.setup_image(width, height);
+          context.setup_image(width, height);
 
           let mut uv_map = HashMap::new();
 
@@ -62,9 +58,15 @@ fn start() -> Result<(), JsValue> {
           for (k, t) in textures {
             uv_map.insert(k, (x as f32 / width as f32, t.width() as f32 / width as f32));
 
-            t.load(&render.context, x, 0);
+            t.load(&context, x, 0);
             x += t.width() as i32;
           }
+
+          let buffers = model::render(&model);
+          let render = Render::new(context, buffers).unwrap();
+
+          let preview = Preview::new();
+          let preview = Rc::new(RefCell::new(preview));
 
           let preview_2 = preview.clone();
           let handle = render.setup_loop(move |render| {

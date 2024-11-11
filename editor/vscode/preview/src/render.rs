@@ -36,20 +36,7 @@ pub struct Image {
 }
 
 impl Render {
-  pub fn new(buffers: Buffers) -> Result<Self, JsValue> {
-    let document = web_sys::window().unwrap().document().unwrap();
-    let canvas = document.get_element_by_id("canvas").unwrap();
-    let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
-
-    let context = canvas.get_context("webgl2")?.unwrap().dyn_into::<WebGl2RenderingContext>()?;
-
-    canvas.set_width(800);
-    canvas.set_height(800);
-    canvas.style().set_property("width", "400px")?;
-    canvas.style().set_property("height", "400px")?;
-
-    let context = Context { texture: context.create_texture().unwrap(), context };
-
+  pub fn new(context: Context, buffers: Buffers) -> Result<Self, JsValue> {
     let vert_shader = context.compile_shader(gl::VERTEX_SHADER, include_str!("vert.glsl"))?;
 
     let frag_shader = context.compile_shader(gl::FRAGMENT_SHADER, include_str!("frag.glsl"))?;
@@ -180,6 +167,21 @@ impl Drop for LoopHandle {
 }
 
 impl Context {
+  pub fn new() -> Result<Self, JsValue> {
+    let document = web_sys::window().unwrap().document().unwrap();
+    let canvas = document.get_element_by_id("canvas").unwrap();
+    let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
+
+    let context = canvas.get_context("webgl2")?.unwrap().dyn_into::<WebGl2RenderingContext>()?;
+
+    canvas.set_width(800);
+    canvas.set_height(800);
+    canvas.style().set_property("width", "400px")?;
+    canvas.style().set_property("height", "400px")?;
+
+    Ok(Context { texture: context.create_texture().unwrap(), context })
+  }
+
   pub fn load_images(
     &self,
     paths: &HashSet<String>,
