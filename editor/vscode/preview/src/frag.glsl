@@ -9,5 +9,9 @@ in vec3 f_normal;
 out vec4 frag;
 
 void main() {
+  if (texture(tex, f_uv).a < 0.25) {
+    discard;
+  }
+
   frag = texture(tex, f_uv);
 }
