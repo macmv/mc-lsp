@@ -169,8 +169,8 @@ impl Dir {
 
 impl json::Rotation {
   fn rotate(&self, p: &mut json::Pos) {
-    let c = (self.angle / 180.0 * std::f32::consts::PI).cos();
-    let s = (self.angle / 180.0 * std::f32::consts::PI).sin();
+    let c = (-self.angle / 180.0 * std::f32::consts::PI).cos();
+    let s = (-self.angle / 180.0 * std::f32::consts::PI).sin();
     let diff = *p - self.origin;
     match self.axis {
       json::Axis::X => {
