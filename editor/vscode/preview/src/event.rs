@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use crate::json;
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
@@ -13,19 +12,7 @@ extern "C" {
 
 #[derive(Deserialize, Debug)]
 pub enum Message {
-  RenderModel { model: Model },
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Model {
-  pub textures: HashMap<String, String>,
-  pub elements: Vec<Element>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct Element {
-  pub from: [f32; 3],
-  pub to:   [f32; 3],
+  RenderModel { model: json::Model },
 }
 
 pub fn listen(mut f: impl FnMut(Message) + 'static) {

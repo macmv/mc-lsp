@@ -3,6 +3,8 @@ use nalgebra::{point, vector, Matrix4, Vector3};
 use wasm_bindgen::prelude::*;
 
 mod event;
+mod json;
+mod model;
 mod render;
 
 use render::Render;
@@ -26,6 +28,8 @@ fn start() -> Result<(), JsValue> {
     Message::RenderModel { model } => {
       info!("rendering model {:?}", model);
 
+      let _buffers = model::render(&model);
+
       let render = Render::new().unwrap();
 
       let mut preview = Preview::new();
@@ -45,9 +49,8 @@ fn start() -> Result<(), JsValue> {
 
           for element in &model.elements {
             let min =
-              Vector3::new(element.from[0] / 16.0, element.from[1] / 16.0, element.from[2] / 16.0);
-            let max =
-              Vector3::new(element.to[0] / 16.0, element.to[1] / 16.0, element.to[2] / 16.0);
+              Vector3::new(element.from.x / 16.0, element.from.y / 16.0, element.from.z / 16.0);
+            let max = Vector3::new(element.to.x / 16.0, element.to.y / 16.0, element.to.z / 16.0);
 
             let scale = max - min;
             let translation = min;
