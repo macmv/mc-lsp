@@ -130,7 +130,7 @@ impl Render {
 
     self.context.context.uniform1i(self.tex_uniform_location.as_ref(), 0);
 
-    self.context.context.draw_arrays(gl::TRIANGLES, 0, self.buffers.pos.len() as i32 / 3);
+    self.context.context.draw_arrays(gl::TRIANGLES, 0, self.buffers.pos.len() as i32);
   }
 
   pub fn setup_loop(self, mut f: impl FnMut(&Render) + 'static) {
