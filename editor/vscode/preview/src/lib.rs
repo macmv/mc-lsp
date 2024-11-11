@@ -61,6 +61,10 @@ fn start() -> Result<(), JsValue> {
     }
   });
 
+  event::on_mouse_move(|x, y| {
+    info!("mouse move: x={}, y={}", x, y);
+  });
+
   Ok(())
 }
 
