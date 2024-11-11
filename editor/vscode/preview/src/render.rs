@@ -92,6 +92,10 @@ impl Render {
     context.context.enable_vertex_attrib_array(normal_attribute_location as u32);
 
     context.context.enable(gl::DEPTH_TEST);
+    context.context.enable(gl::CULL_FACE);
+
+    context.context.enable(gl::BLEND);
+    context.context.blend_func(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
 
     Ok(Render {
       proj_uniform_location: context.context.get_uniform_location(&program, "proj"),
@@ -104,8 +108,8 @@ impl Render {
   }
 
   pub fn clear(&self) {
-    self.context.context.clear_color(0.0, 0.0, 0.0, 1.0);
-    self.context.context.clear(gl::COLOR_BUFFER_BIT);
+    self.context.context.clear_color(0.6, 0.7, 0.7, 1.0);
+    self.context.context.clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
   }
 
   pub fn set_matrices(&self, proj: &[f32], view: &[f32]) {
