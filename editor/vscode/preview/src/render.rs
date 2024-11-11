@@ -1,5 +1,5 @@
 use std::{
-  cell::RefCell,
+  cell::{Cell, RefCell},
   collections::{HashMap, HashSet},
   rc::Rc,
 };
@@ -133,25 +133,42 @@ impl Render {
     self.context.context.draw_arrays(gl::TRIANGLES, 0, self.buffers.pos.len() as i32);
   }
 
-  pub fn setup_loop(self, mut f: impl FnMut(&Render) + 'static) {
+  pub fn setup_loop(self, mut f: impl FnMut(&Render) + 'static) -> LoopHandle {
     // Don't look too close, you're eyes might fall out.
     let render_func: Rc<RefCell<Option<Closure<_>>>> = Rc::new(RefCell::new(None));
     let render_func_2 = render_func.clone();
 
+    let running = Rc::new(Cell::new(true));
+
+    let running_2 = running.clone();
     *render_func.borrow_mut() = Some(Closure::new(move || {
       f(&self);
 
-      let window = web_sys::window().unwrap();
-      window
-        .request_animation_frame(render_func_2.borrow().as_ref().unwrap().as_ref().unchecked_ref())
-        .unwrap();
+      if running_2.get() {
+        let window = web_sys::window().unwrap();
+        window
+          .request_animation_frame(
+            render_func_2.borrow().as_ref().unwrap().as_ref().unchecked_ref(),
+          )
+          .unwrap();
+      }
     }));
 
     let window = web_sys::window().unwrap();
     window
       .request_animation_frame(render_func.borrow().as_ref().unwrap().as_ref().unchecked_ref())
       .unwrap();
+
+    LoopHandle { running }
   }
+}
+
+#[must_use = "the loop will stop when the handle is dropped"]
+pub struct LoopHandle {
+  running: Rc<Cell<bool>>,
+}
+impl Drop for LoopHandle {
+  fn drop(&mut self) { self.running.set(false); }
 }
 
 impl Context {

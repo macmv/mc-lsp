@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use event::Message;
 use nalgebra::{point, vector, Matrix4};
 use wasm_bindgen::prelude::*;
@@ -24,9 +26,13 @@ struct Preview {
 fn start() -> Result<(), JsValue> {
   console_log::init().unwrap();
 
-  event::listen(|m: Message| match m {
+  let current = Rc::new(RefCell::new(None));
+
+  event::listen(move |m: Message| match m {
     Message::RenderModel { model } => {
       info!("rendering model {:?}", model);
+
+      current.borrow_mut().take();
 
       let buffers = model::render(&model);
       let render = Render::new(buffers).unwrap();
@@ -37,17 +43,20 @@ fn start() -> Result<(), JsValue> {
       let textures = model.textures.clone();
       let texture_names = textures.values().cloned().collect();
 
+      let current = current.clone();
       render.context.clone().load_images(&texture_names, move |textures| {
         for t in textures.values() {
           t.load(&render.context);
         }
 
-        render.setup_loop(move |render| {
+        let handle = render.setup_loop(move |render| {
           render.clear();
           preview.update();
 
           preview.draw(render);
         });
+
+        *current.borrow_mut() = Some(handle);
       });
     }
   });
