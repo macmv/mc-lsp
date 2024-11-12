@@ -4,6 +4,7 @@ use std::{
 };
 
 mod parse;
+mod validate;
 
 use la_arena::{Arena, Idx};
 use mc_source::FileId;
@@ -95,7 +96,11 @@ pub fn parse_model(
   let mut diagnostics = Diagnostics::new();
   let mut model = Model::default();
   let mut source_map = ModelSourceMap::default();
-  parse::parse(&mut model, &mut source_map, &mut diagnostics, &json.tree());
+
+  let tree = json.tree();
+
+  parse::parse(&mut model, &mut source_map, &mut diagnostics, &tree);
+  validate::validate(&model, &source_map, &json, &mut diagnostics);
 
   (Arc::new(model), Arc::new(source_map), Arc::new(diagnostics))
 }

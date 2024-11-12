@@ -1,6 +1,9 @@
 use crate::diagnostic::Diagnostics;
 use la_arena::RawIdx;
-use mc_syntax::{ast, AstPtr, Json};
+use mc_syntax::{
+  ast::{self, AstNode},
+  AstPtr, Json,
+};
 
 use super::*;
 
@@ -137,7 +140,7 @@ impl Parser<'_> {
           let Some(key) = elem.key() else { continue };
           let key_str = key.parse_text();
           if !keys.insert(key_str.clone()) {
-            self.diagnostics.error(key, "duplicate key");
+            self.diagnostics.error(key.syntax(), "duplicate key");
             continue;
           }
           let Some(value) = elem.value() else { continue };

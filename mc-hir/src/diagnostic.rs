@@ -1,5 +1,5 @@
 use mc_source::TextRange;
-use mc_syntax::ast;
+use mc_syntax::SyntaxNode;
 
 /// A collection of diagnostics in a single file.
 #[derive(Debug, PartialEq, Eq)]
@@ -53,6 +53,14 @@ impl Diagnostic {
   }
 }
 
-impl<T: ast::AstNode> Spanned for T {
-  fn span(&self) -> TextRange { self.syntax().text_range() }
+impl Spanned for TextRange {
+  fn span(&self) -> TextRange { *self }
+}
+
+impl Spanned for SyntaxNode {
+  fn span(&self) -> TextRange { self.text_range() }
+}
+
+impl<T: Spanned> Spanned for &T {
+  fn span(&self) -> TextRange { (*self).span() }
 }
