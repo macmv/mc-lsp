@@ -188,6 +188,17 @@ impl GlobalState {
 
                 Some(lsp_types::Diagnostic {
                   message: d.message.clone(),
+                  severity: Some(match d.level {
+                    mc_analysis::diagnostic::Severity::Error => {
+                      lsp_types::DiagnosticSeverity::ERROR
+                    }
+                    mc_analysis::diagnostic::Severity::Warn => {
+                      lsp_types::DiagnosticSeverity::WARNING
+                    }
+                    mc_analysis::diagnostic::Severity::Info => {
+                      lsp_types::DiagnosticSeverity::INFORMATION
+                    }
+                  }),
                   range: lsp_types::Range {
                     start: lsp_types::Position { line: start.line, character: start.col },
                     end:   lsp_types::Position { line: end.line, character: end.col },

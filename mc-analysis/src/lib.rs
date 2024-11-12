@@ -19,6 +19,8 @@ use mc_syntax::{
 };
 use salsa::{Cancelled, ParallelDatabase};
 
+pub use mc_hir::diagnostic;
+
 pub struct AnalysisHost {
   db: RootDatabase,
 }
