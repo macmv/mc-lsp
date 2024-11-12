@@ -37,7 +37,12 @@ pub fn value(p: &mut Parser) {
     // ["hi", 3]
     T!['['] => array(p),
 
-    _ => p.error("expected value"),
+    _ => {
+      p.error("expected value");
+      while !p.at(T![,]) && !p.at(T!['}']) && !p.at(T![']']) && !p.at(SyntaxKind::EOF) {
+        p.bump();
+      }
+    }
   }
 
   match p.current() {
@@ -75,7 +80,9 @@ fn object(p: &mut Parser) {
       T!['}'] => {}
       _ => {
         p.error("expected comma or end of object");
-        p.bump();
+        while !p.at(T![,]) && !p.at(T!['}']) && !p.at(T![']']) && !p.at(SyntaxKind::EOF) {
+          p.bump();
+        }
       }
     }
 
@@ -100,7 +107,9 @@ fn array(p: &mut Parser) {
       T![']'] => {}
       _ => {
         p.error("expected comma or end of array");
-        p.bump();
+        while !p.at(T![,]) && !p.at(T!['}']) && !p.at(T![']']) && !p.at(SyntaxKind::EOF) {
+          p.bump();
+        }
       }
     }
   }
