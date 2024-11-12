@@ -38,6 +38,6 @@ impl Diagnostic {
   }
 }
 
-// impl<T: ast::AstNode> Spanned for T {
-//   fn span(&self) -> TextRange { self.syntax().text_range() }
-// }
+impl<T: ast::AstNode> Spanned for T {
+  fn span(&self) -> TextRange { self.syntax().text_range() }
+}
