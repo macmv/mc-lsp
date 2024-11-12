@@ -82,7 +82,7 @@ impl Analysis {
 
       let token = ast
         .syntax_node()
-        .token_at_offset(line_index::TextSize::from(pos.index.0))
+        .token_at_offset(pos.index)
         .max_by_key(|token| match token.kind() {
           T![string] => 10,
           T![number] => 9,
@@ -124,10 +124,7 @@ impl Analysis {
 
               return Some(FileRange {
                 file:  pos.file,
-                range: Some(mc_source::TextRange {
-                  start: mc_source::TextSize(element.syntax().text_range().start().into()),
-                  end:   mc_source::TextSize(element.syntax().text_range().end().into()),
-                }),
+                range: Some(element.syntax().text_range()),
               });
             }
           }

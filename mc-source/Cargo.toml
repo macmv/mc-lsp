@@ -10,3 +10,4 @@ la-arena = "0.3.1"
 salsa = "0.17.0-pre.2"
 url = "2.5.0"
 mc-syntax.workspace = true
+line-index = "0.1.2"

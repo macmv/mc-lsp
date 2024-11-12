@@ -83,7 +83,7 @@ impl Highlight {
       }
     }
 
-    hl.hl.tokens.sort_by_key(|t| t.range.start);
+    hl.hl.tokens.sort_by_key(|t| t.range.start());
 
     hl.hl
   }
@@ -97,14 +97,7 @@ impl Highlighter<'_> {
   fn highlight<T: AstNode>(&mut self, node: T, kind: HighlightKind) {
     let range = node.syntax().text_range();
 
-    self.hl.tokens.push(HighlightToken {
-      range: mc_source::TextRange {
-        start: mc_source::TextSize(range.start().into()),
-        end:   mc_source::TextSize(range.end().into()),
-      },
-      kind,
-      modifierst: 0,
-    });
+    self.hl.tokens.push(HighlightToken { range, kind, modifierst: 0 });
   }
 }
 

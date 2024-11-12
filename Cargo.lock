@@ -492,6 +492,7 @@ name = "mc-source"
 version = "0.1.0"
 dependencies = [
  "la-arena",
+ "line-index",
  "mc-syntax",
  "salsa",
  "url",

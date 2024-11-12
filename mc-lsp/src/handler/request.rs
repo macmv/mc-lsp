@@ -27,13 +27,13 @@ impl LspConverter {
   }
 
   pub fn pos(&self, index: TextSize) -> lsp_types::Position {
-    let pos = self.line_index.line_col(line_index::TextSize::new(index.0 as u32));
+    let pos = self.line_index.line_col(index);
     lsp_types::Position { line: pos.line, character: pos.col }
   }
 
   pub fn range(&self, range: TextRange) -> lsp_types::Range {
-    let start = self.pos(range.start);
-    let end = self.pos(range.end);
+    let start = self.pos(range.start());
+    let end = self.pos(range.end());
 
     lsp_types::Range { start, end }
   }
@@ -225,7 +225,7 @@ fn to_semantic_tokens(
   for h in highlight.tokens.iter() {
     let range = h.range;
 
-    let pos = line_index.line_col(line_index::TextSize::new(range.start.0 as u32));
+    let pos = line_index.line_col(range.start());
 
     let delta_line = pos.line - line;
     if delta_line != 0 {
@@ -239,7 +239,7 @@ fn to_semantic_tokens(
     tokens.push(lsp_types::SemanticToken {
       delta_line,
       delta_start,
-      length: (range.end - range.start).0 as u32,
+      length: (range.end() - range.start()).into(),
       token_type: h.kind as u32,
       token_modifiers_bitset: TokenModifier::from_kind(h.kind).encode(),
     });
@@ -260,7 +260,7 @@ fn file_position(
   let index = snap.analysis.line_index(file_id)?;
 
   match index.offset(line_index::LineCol { line: pos.position.line, col: pos.position.character }) {
-    Some(index) => Ok(FileLocation { file: file_id, index: TextSize(index.into()) }),
+    Some(index) => Ok(FileLocation { file: file_id, index }),
     None => Err("position not found".into()),
   }
 }

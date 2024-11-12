@@ -1,11 +1,8 @@
-use std::{
-  marker::PhantomData,
-  ops::{Add, Sub},
-  path::PathBuf,
-  sync::Arc,
-};
+use std::{marker::PhantomData, path::PathBuf, sync::Arc};
 
 use mc_syntax::Parse;
+
+pub use line_index::{TextRange, TextSize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FileLocation {
@@ -17,27 +14,6 @@ pub struct FileLocation {
 pub struct FileRange {
   pub file:  FileId,
   pub range: Option<TextRange>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TextSize(pub u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TextRange {
-  pub start: TextSize,
-  pub end:   TextSize,
-}
-
-impl Add for TextSize {
-  type Output = TextSize;
-
-  fn add(self, rhs: Self) -> Self::Output { TextSize(self.0 + rhs.0) }
-}
-
-impl Sub for TextSize {
-  type Output = TextSize;
-
-  fn sub(self, rhs: Self) -> Self::Output { TextSize(self.0 - rhs.0) }
 }
 
 #[salsa::query_group(SourceDatabaseStorage)]
