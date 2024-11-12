@@ -14,7 +14,7 @@ pub struct Diagnostic {
 
 pub enum DiagnosticLevel {
   Error,
-  Warning,
+  Warn,
   Info,
 }
 
@@ -28,6 +28,12 @@ impl Diagnostics {
   pub fn error(&mut self, node: impl Spanned, message: impl Into<String>) {
     self.diagnostics.push(Diagnostic::new_error(node.span(), message.into()));
   }
+  pub fn warn(&mut self, node: impl Spanned, message: impl Into<String>) {
+    self.diagnostics.push(Diagnostic::new_error(node.span(), message.into()));
+  }
+  pub fn info(&mut self, node: impl Spanned, message: impl Into<String>) {
+    self.diagnostics.push(Diagnostic::new_error(node.span(), message.into()));
+  }
 
   pub fn iter(&self) -> impl Iterator<Item = &Diagnostic> { self.diagnostics.iter() }
 }
@@ -35,6 +41,12 @@ impl Diagnostics {
 impl Diagnostic {
   pub fn new_error(span: TextRange, message: String) -> Self {
     Self { span, message, level: DiagnosticLevel::Error }
+  }
+  pub fn new_warn(span: TextRange, message: String) -> Self {
+    Self { span, message, level: DiagnosticLevel::Warn }
+  }
+  pub fn new_info(span: TextRange, message: String) -> Self {
+    Self { span, message, level: DiagnosticLevel::Info }
   }
 }
 

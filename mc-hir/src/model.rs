@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+  collections::{HashMap, HashSet},
+  sync::Arc,
+};
 
 use la_arena::{Arena, Idx, RawIdx};
 use mc_source::FileId;
@@ -82,20 +85,21 @@ pub struct Pos {
 }
 
 struct Parser<'a> {
-  model:      &'a mut Model,
-  source_map: &'a mut ModelSourceMap,
+  model:       &'a mut Model,
+  source_map:  &'a mut ModelSourceMap,
+  diagnostics: &'a mut Diagnostics,
 }
 
 pub fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> (Arc<Model>, Arc<ModelSourceMap>) {
   let json = db.parse_json(file_id);
 
+  let mut diagnostics = Diagnostics::new();
   let mut model = Model::default();
   let mut source_map = ModelSourceMap::default();
-  let mut parser = Parser { model: &mut model, source_map: &mut source_map };
+  let mut parser =
+    Parser { model: &mut model, source_map: &mut source_map, diagnostics: &mut diagnostics };
 
   parser.parse_root(&json.tree());
-
-  let _diagnostics = Diagnostics::new();
 
   (Arc::new(model), Arc::new(source_map))
 }
@@ -211,9 +215,15 @@ impl Parser<'_> {
   ) -> Option<ast::Object> {
     match object {
       ast::Value::Object(obj) => {
+        let mut keys = HashSet::new();
+
         for elem in obj.elements() {
           let Some(key) = elem.key() else { continue };
           let key_str = key.parse_text();
+          if !keys.insert(key_str.clone()) {
+            self.diagnostics.error(key, "duplicate key");
+            continue;
+          }
           let Some(value) = elem.value() else { continue };
 
           f(self, elem, &key_str, value);
