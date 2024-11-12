@@ -11,11 +11,11 @@ pub struct Diagnostics {
 pub struct Diagnostic {
   pub span:    TextRange,
   pub message: String,
-  pub level:   DiagnosticLevel,
+  pub level:   Severity,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DiagnosticLevel {
+pub enum Severity {
   Error,
   Warn,
   Info,
@@ -32,10 +32,10 @@ impl Diagnostics {
     self.diagnostics.push(Diagnostic::new_error(node.span(), message.into()));
   }
   pub fn warn(&mut self, node: impl Spanned, message: impl Into<String>) {
-    self.diagnostics.push(Diagnostic::new_error(node.span(), message.into()));
+    self.diagnostics.push(Diagnostic::new_warn(node.span(), message.into()));
   }
   pub fn info(&mut self, node: impl Spanned, message: impl Into<String>) {
-    self.diagnostics.push(Diagnostic::new_error(node.span(), message.into()));
+    self.diagnostics.push(Diagnostic::new_info(node.span(), message.into()));
   }
 
   pub fn iter(&self) -> impl Iterator<Item = &Diagnostic> { self.diagnostics.iter() }
@@ -43,13 +43,13 @@ impl Diagnostics {
 
 impl Diagnostic {
   pub fn new_error(span: TextRange, message: String) -> Self {
-    Self { span, message, level: DiagnosticLevel::Error }
+    Self { span, message, level: Severity::Error }
   }
   pub fn new_warn(span: TextRange, message: String) -> Self {
-    Self { span, message, level: DiagnosticLevel::Warn }
+    Self { span, message, level: Severity::Warn }
   }
   pub fn new_info(span: TextRange, message: String) -> Self {
-    Self { span, message, level: DiagnosticLevel::Info }
+    Self { span, message, level: Severity::Info }
   }
 }
 
