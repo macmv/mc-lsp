@@ -26,9 +26,24 @@ impl Validator<'_> {
   fn validate_model(&mut self) {
     for (id, node) in self.model.nodes.iter() {
       match node {
+        Node::TextureDef(texture_def) => self.validate_texture_def(id, &texture_def),
         Node::Texture(texture) => self.validate_texture(id, &texture),
         _ => {}
       }
+    }
+  }
+
+  fn validate_texture_def(&mut self, id: NodeId, texture: &TextureDef) {
+    let is_used = self.model.nodes.values().any(|node| match node {
+      Node::Texture(Texture::Reference(name)) => texture.name == *name,
+      _ => false,
+    });
+
+    if !is_used {
+      self.diagnostics.warn(
+        self.source_map.texture_defs[&id].to_node(&self.json),
+        format!("texture `{}` is defined but not used", texture.name),
+      );
     }
   }
 
