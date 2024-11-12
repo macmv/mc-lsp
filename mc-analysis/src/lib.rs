@@ -69,11 +69,10 @@ impl ParallelDatabase for RootDatabase {
 
 impl Analysis {
   pub fn completions(&self, _: FileLocation) -> Cancellable<Vec<()>> { self.with_db(|_| vec![]) }
-  pub fn diagnostics(&self, _file: FileId) -> Cancellable<Arc<Diagnostics>> {
-    self.with_db(|_db| {
-      // let (_, _, diagnostics) = db.parse_model_with_source_map(file);
-      // diagnostics
-      Arc::new(Diagnostics::new())
+  pub fn diagnostics(&self, file: FileId) -> Cancellable<Arc<Diagnostics>> {
+    self.with_db(|db| {
+      let (_, _, diagnostics) = db.parse_model_with_source_map(file);
+      diagnostics
     })
   }
 
