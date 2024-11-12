@@ -121,7 +121,7 @@ impl<'a> Lexer<'a> {
     let char = self.tok.peek_char().ok_or(LexError::EOF)?;
     match char {
       // Numbers.
-      '0'..='9' | '.' => {
+      '0'..='9' | '.' | '-' => {
         self.tok.eat()?;
         match self.tok.peek_char() {
           _ => {
