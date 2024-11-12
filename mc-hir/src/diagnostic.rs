@@ -9,9 +9,9 @@ pub struct Diagnostics {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Diagnostic {
-  pub span:    TextRange,
-  pub message: String,
-  pub level:   Severity,
+  pub span:     TextRange,
+  pub message:  String,
+  pub severity: Severity,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,13 +43,13 @@ impl Diagnostics {
 
 impl Diagnostic {
   pub fn new_error(span: TextRange, message: String) -> Self {
-    Self { span, message, level: Severity::Error }
+    Self { span, message, severity: Severity::Error }
   }
   pub fn new_warn(span: TextRange, message: String) -> Self {
-    Self { span, message, level: Severity::Warn }
+    Self { span, message, severity: Severity::Warn }
   }
   pub fn new_info(span: TextRange, message: String) -> Self {
-    Self { span, message, level: Severity::Info }
+    Self { span, message, severity: Severity::Info }
   }
 }
 

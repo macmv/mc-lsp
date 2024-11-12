@@ -188,7 +188,7 @@ impl GlobalState {
 
                 Some(lsp_types::Diagnostic {
                   message: d.message.clone(),
-                  severity: Some(match d.level {
+                  severity: Some(match d.severity {
                     mc_analysis::diagnostic::Severity::Error => {
                       lsp_types::DiagnosticSeverity::ERROR
                     }
