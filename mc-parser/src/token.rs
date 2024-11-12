@@ -61,7 +61,7 @@ impl<'a> Tokenizer<'a> {
     };
     self.index += c.len_utf8();
     let t = match c {
-      ' ' | '\n' => InnerToken::Syntax(SyntaxKind::WHITESPACE),
+      ' ' | '\t' | '\r' | '\n' => InnerToken::Syntax(SyntaxKind::WHITESPACE),
 
       '[' => InnerToken::Syntax(T!['[']),
       ']' => InnerToken::Syntax(T![']']),
