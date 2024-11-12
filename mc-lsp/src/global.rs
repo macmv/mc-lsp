@@ -3,7 +3,7 @@
 use crossbeam_channel::{Receiver, Select, Sender};
 use lsp_server::ErrorCode;
 use mc_analysis::{Analysis, AnalysisHost};
-use mc_source::{FileId, Workspace};
+use mc_source::{FileId, TextSize, Workspace};
 use parking_lot::RwLock;
 use std::{collections::HashMap, error::Error, path::PathBuf, sync::Arc};
 
@@ -165,7 +165,7 @@ impl GlobalState {
         FileContent::Png(_) => continue,
       }
 
-      let _line_index = snap.line_index(file_id).unwrap();
+      let line_index = snap.line_index(file_id).unwrap();
       let diagnostics = snap.diagnostics(file_id).unwrap();
 
       self
@@ -175,9 +175,8 @@ impl GlobalState {
           params: serde_json::to_value(lsp_types::PublishDiagnosticsParams {
             uri:         Url::from_file_path(files.id_to_absolute_path(file_id)).unwrap(),
             diagnostics: diagnostics
-              .into_iter()
-              .filter_map(|_| {
-                /*
+              .iter()
+              .filter_map(|d| {
                 let start = line_index.try_line_col(d.span.start())?;
 
                 let end = if d.span.is_empty() {
@@ -188,15 +187,13 @@ impl GlobalState {
                 };
 
                 Some(lsp_types::Diagnostic {
-                  message: d.message,
+                  message: d.message.clone(),
                   range: lsp_types::Range {
                     start: lsp_types::Position { line: start.line, character: start.col },
                     end:   lsp_types::Position { line: end.line, character: end.col },
                   },
                   ..Default::default()
                 })
-                */
-                None
               })
               .chain(self.diagnostics.get(&file_id).unwrap_or(&vec![]).iter().cloned())
               .collect(),

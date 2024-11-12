@@ -11,7 +11,7 @@ use std::{panic::UnwindSafe, path::Path, sync::Arc};
 use database::{LineIndexDatabase, RootDatabase};
 use highlight::Highlight;
 use line_index::LineIndex;
-use mc_hir::{model, HirDatabase};
+use mc_hir::{diagnostic::Diagnostics, model, HirDatabase};
 use mc_source::{FileId, FileLocation, FileRange, SourceDatabase, Workspace};
 use mc_syntax::{
   ast::{self, AstNode},
@@ -69,7 +69,13 @@ impl ParallelDatabase for RootDatabase {
 
 impl Analysis {
   pub fn completions(&self, _: FileLocation) -> Cancellable<Vec<()>> { self.with_db(|_| vec![]) }
-  pub fn diagnostics(&self, _: FileId) -> Cancellable<Vec<()>> { self.with_db(|_| vec![]) }
+  pub fn diagnostics(&self, _file: FileId) -> Cancellable<Arc<Diagnostics>> {
+    self.with_db(|_db| {
+      // let (_, _, diagnostics) = db.parse_model_with_source_map(file);
+      // diagnostics
+      Arc::new(Diagnostics::new())
+    })
+  }
 
   pub fn highlight(&self, file: FileId) -> Cancellable<Highlight> {
     self.with_db(|db| Highlight::from_ast(db, file))
