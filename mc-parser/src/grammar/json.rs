@@ -63,6 +63,7 @@ fn object(p: &mut Parser) {
       m.complete(p, SyntaxKind::KEY);
     } else {
       p.error("expected string");
+      p.bump();
     }
 
     if p.at(T![:]) {
