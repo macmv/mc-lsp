@@ -1,7 +1,11 @@
-use std::{env, path::PathBuf};
+use std::{
+  env,
+  io::{self, ErrorKind},
+  path::PathBuf,
+};
 
-pub fn extract_jar() {
-  let home = env::var("HOME").unwrap();
+pub fn extract_jar() -> io::Result<PathBuf> {
+  let home = env::var("HOME").map_err(|_| io::Error::new(ErrorKind::Other, "HOME not set"))?;
 
   // NB: This is just the client jar. We could pull this down from mojang, but we
   // can also just assume that forge gradle has pulled it down, and unzip it
@@ -26,7 +30,18 @@ pub fn extract_jar() {
 
   std::fs::create_dir_all(&destination).unwrap();
 
-  let mut archive = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
+  let mut archive = zip::ZipArchive::new(std::fs::File::open(&path).map_err(|e| {
+    io::Error::new(
+      ErrorKind::InvalidData,
+      format!("failed to open vanilla jar at {}: {}", path.display(), e),
+    )
+  })?)
+  .map_err(|e| {
+    io::Error::new(
+      ErrorKind::InvalidData,
+      format!("failed to open vanilla jar at {}: {}", path.display(), e),
+    )
+  })?;
 
   for i in 0..archive.len() {
     let name = archive.name_for_index(i).unwrap();
@@ -38,13 +53,17 @@ pub fn extract_jar() {
       continue;
     }
 
-    std::fs::create_dir_all(&path.parent().unwrap()).unwrap();
+    if let Some(parent) = path.parent() {
+      std::fs::create_dir_all(&parent)?;
+    }
 
     let mut input = archive.by_index(i).unwrap();
-    let mut out = std::fs::File::create(&path).unwrap();
-    std::io::copy(&mut input, &mut out).unwrap();
+    let mut out = std::fs::File::create(&path)?;
+    std::io::copy(&mut input, &mut out)?;
   }
+
+  Ok(destination)
 }
 
 #[test]
-fn test_extract_jar() { extract_jar(); }
+fn test_extract_jar() { extract_jar().unwrap(); }
