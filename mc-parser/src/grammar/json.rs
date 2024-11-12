@@ -50,7 +50,7 @@ fn object(p: &mut Parser) {
   let m = p.start();
   p.bump();
 
-  while !p.at(T!['}']) {
+  while !p.at(T!['}']) && !p.at(SyntaxKind::EOF) {
     let m = p.start();
     if p.at(T![string]) {
       let m = p.start();
@@ -73,7 +73,10 @@ fn object(p: &mut Parser) {
         p.bump();
       }
       T!['}'] => {}
-      _ => p.error("expected comma or end of object"),
+      _ => {
+        p.error("expected comma or end of object");
+        p.bump();
+      }
     }
 
     m.complete(p, SyntaxKind::ELEMENT);
@@ -87,7 +90,7 @@ fn array(p: &mut Parser) {
   let m = p.start();
   p.bump();
 
-  while !p.at(T![']']) {
+  while !p.at(T![']']) && !p.at(SyntaxKind::EOF) {
     value(p);
 
     match p.current() {
@@ -95,7 +98,10 @@ fn array(p: &mut Parser) {
         p.bump();
       }
       T![']'] => {}
-      _ => p.error("expected comma or end of array"),
+      _ => {
+        p.error("expected comma or end of array");
+        p.bump();
+      }
     }
   }
 
