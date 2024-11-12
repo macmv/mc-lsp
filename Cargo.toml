@@ -8,6 +8,7 @@ members = [
   "mc-syntax",
   "mc-hir",
   "mc-analysis",
+  "mc-gradle",
   "mc-lsp",
 
   "editor/vscode/preview",
