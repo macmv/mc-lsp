@@ -726,6 +726,7 @@ dependencies = [
  "lsp-server",
  "lsp-types",
  "mc-analysis",
+ "mc-gradle",
  "mc-source",
  "parking_lot 0.12.3",
  "serde_json",
