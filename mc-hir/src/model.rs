@@ -90,7 +90,10 @@ struct Parser<'a> {
   diagnostics: &'a mut Diagnostics,
 }
 
-pub fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> (Arc<Model>, Arc<ModelSourceMap>) {
+pub fn parse_model(
+  db: &dyn HirDatabase,
+  file_id: FileId,
+) -> (Arc<Model>, Arc<ModelSourceMap>, Arc<Diagnostics>) {
   let json = db.parse_json(file_id);
 
   let mut diagnostics = Diagnostics::new();
@@ -101,7 +104,7 @@ pub fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> (Arc<Model>, Arc<Mo
 
   parser.parse_root(&json.tree());
 
-  (Arc::new(model), Arc::new(source_map))
+  (Arc::new(model), Arc::new(source_map), Arc::new(diagnostics))
 }
 
 impl Parser<'_> {

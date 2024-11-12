@@ -2,16 +2,19 @@ use mc_source::TextRange;
 use mc_syntax::ast;
 
 /// A collection of diagnostics in a single file.
+#[derive(Debug, PartialEq, Eq)]
 pub struct Diagnostics {
   diagnostics: Vec<Diagnostic>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Diagnostic {
   pub span:    TextRange,
   pub message: String,
   pub level:   DiagnosticLevel,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DiagnosticLevel {
   Error,
   Warn,

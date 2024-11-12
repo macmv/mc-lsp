@@ -78,7 +78,7 @@ impl Analysis {
   pub fn definition_for_name(&self, pos: FileLocation) -> Cancellable<Option<FileRange>> {
     self.with_db(|db| {
       let ast = db.parse_json(pos.file);
-      let (model, source_map) = db.parse_model_with_source_map(pos.file);
+      let (model, source_map, _) = db.parse_model_with_source_map(pos.file);
 
       let token = ast
         .syntax_node()

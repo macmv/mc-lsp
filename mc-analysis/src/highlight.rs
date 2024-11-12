@@ -61,7 +61,7 @@ impl Highlight {
     */
 
     let ast = db.parse_json(file);
-    let (model, source_map) = db.parse_model_with_source_map(file);
+    let (model, source_map, _) = db.parse_model_with_source_map(file);
 
     for (id, node) in model.nodes.iter() {
       match node {

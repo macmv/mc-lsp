@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use diagnostic::Diagnostics;
 use mc_source::{FileId, SourceDatabase};
 use model::Model;
 
@@ -15,7 +16,7 @@ pub trait HirDatabase: SourceDatabase {
   fn parse_model_with_source_map(
     &self,
     file_id: FileId,
-  ) -> (Arc<Model>, Arc<model::ModelSourceMap>);
+  ) -> (Arc<Model>, Arc<model::ModelSourceMap>, Arc<Diagnostics>);
 
   fn parse_model(&self, file_id: FileId) -> Arc<Model>;
 }
