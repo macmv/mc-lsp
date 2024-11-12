@@ -39,7 +39,8 @@ impl Validator<'_> {
       _ => false,
     });
 
-    if !is_used {
+    // FIXME: Need to check if the texture is used in the parent model as well.
+    if !is_used && false {
       self.diagnostics.warn(
         self.source_map.texture_defs[&id].to_node(&self.json),
         format!("texture `{}` is defined but not used", texture.name),
