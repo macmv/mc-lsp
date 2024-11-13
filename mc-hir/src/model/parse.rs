@@ -26,11 +26,11 @@ pub fn parse(
 impl Parser<'_> {
   fn parse_root(&mut self, json: &ast::Json) {
     let Some(root) = json.value() else { return };
-    self.parse_object(root, |p, _, key, value| match key {
+    self.parse_object(root, |p, _, key_syntax, key, value| match key {
       "parent" => p.model.parent = p.parse_path(value),
       "textures" => p.parse_textures(value),
       "elements" => p.parse_elements(value),
-      _ => {}
+      _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
     });
   }
 
@@ -40,7 +40,7 @@ impl Parser<'_> {
   }
 
   fn parse_textures(&mut self, textures: ast::Value) {
-    self.parse_object(textures, |p, elem, key, value| {
+    self.parse_object(textures, |p, elem, _, key, value| {
       let Some(texture) = value.as_str() else { return };
 
       p.alloc(elem, TextureDef { name: key.to_string(), value: texture.to_string() });
@@ -58,11 +58,11 @@ impl Parser<'_> {
   fn parse_element(&mut self, e: ast::Value) -> Option<NodeId> {
     let mut element = Element::default();
 
-    let obj = self.parse_object(e, |p, _, key, value| match key {
+    let obj = self.parse_object(e, |p, _, key_syntax, key, value| match key {
       "from" => element.from = p.parse_pos(value),
       "to" => element.to = p.parse_pos(value),
       "faces" => element.faces = p.parse_faces(value),
-      _ => {}
+      _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
     });
 
     obj.map(|o| self.alloc(o, element))
@@ -71,7 +71,7 @@ impl Parser<'_> {
   fn parse_pos(&mut self, p: ast::Value) -> Pos {
     let mut pos = Pos::default();
 
-    self.parse_object(p, |_, _, key, value| match key {
+    self.parse_object(p, |_, _, _, key, value| match key {
       "x" => pos.x = value.as_i64().unwrap_or(0),
       "y" => pos.y = value.as_i64().unwrap_or(0),
       "z" => pos.z = value.as_i64().unwrap_or(0),
@@ -84,7 +84,7 @@ impl Parser<'_> {
   fn parse_faces(&mut self, f: ast::Value) -> Faces {
     let mut faces = Faces::default();
 
-    self.parse_object(f, |p, _, key, value| {
+    self.parse_object(f, |p, _, key_syntax, key, value| {
       let Some(face) = p.parse_face(value) else { return };
 
       match key {
@@ -94,7 +94,7 @@ impl Parser<'_> {
         "west" => faces.west = Some(face),
         "up" => faces.up = Some(face),
         "down" => faces.down = Some(face),
-        _ => {}
+        _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
       }
     });
 
@@ -105,7 +105,7 @@ impl Parser<'_> {
     let mut face =
       Face { uv: [0; 4], texture: NodeId::from_raw(RawIdx::from_u32(0)), cull: false };
 
-    let obj = self.parse_object(f, |p, _, key, value| match key {
+    let obj = self.parse_object(f, |p, _, key_syntax, key, value| match key {
       "uv" => {
         if let ast::Value::Array(arr) = value {
           for (i, item) in arr.values().enumerate() {
@@ -121,7 +121,7 @@ impl Parser<'_> {
         face.texture = node;
       }
       "cull" => face.cull = value.as_bool().unwrap_or(false),
-      _ => {}
+      _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
     });
 
     obj.map(|o| self.alloc(o, face))
@@ -130,7 +130,7 @@ impl Parser<'_> {
   fn parse_object(
     &mut self,
     object: ast::Value,
-    mut f: impl FnMut(&mut Parser, ast::Element, &str, ast::Value),
+    mut f: impl FnMut(&mut Parser, ast::Element, ast::Key, &str, ast::Value),
   ) -> Option<ast::Object> {
     match object {
       ast::Value::Object(obj) => {
@@ -145,7 +145,7 @@ impl Parser<'_> {
           }
           let Some(value) = elem.value() else { continue };
 
-          f(self, elem, &key_str, value);
+          f(self, elem, key, &key_str, value);
         }
 
         Some(obj)
