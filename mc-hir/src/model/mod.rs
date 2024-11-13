@@ -109,7 +109,20 @@ pub fn parse_model(
   let tree = json.tree();
 
   parse::parse(&mut model, &mut source_map, &mut diagnostics, &tree);
-  validate::validate(&model, &source_map, &json, &mut diagnostics);
 
   (Arc::new(model), Arc::new(source_map), Arc::new(diagnostics))
+}
+
+pub fn validate_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Diagnostics> {
+  // TODO: It might be nice to make this not dependent on the syntax tree
+  // directly. Ideally, it'd only be dependent on `parse_model` and the model's
+  // parent.
+  let json = db.parse_json(file_id);
+
+  let (model, source_map, diagnostics) = parse_model(db, file_id);
+  let mut diagnostics = (&*diagnostics).clone();
+
+  validate::validate(&model, &source_map, &json, &mut diagnostics);
+
+  Arc::new(diagnostics)
 }

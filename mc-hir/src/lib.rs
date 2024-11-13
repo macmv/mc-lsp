@@ -25,6 +25,9 @@ pub trait HirDatabase: SourceDatabase {
 
   fn parse_model(&self, file_id: FileId) -> Arc<Model>;
 
+  #[salsa::invoke(model::validate_model)]
+  fn validate_model(&self, file_id: FileId) -> Arc<Diagnostics>;
+
   fn lookup_model(&self, path: ModelPath) -> Option<FileId>;
 
   fn def_at_index(&self, pos: FileLocation) -> Option<FileRange>;

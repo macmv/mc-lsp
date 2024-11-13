@@ -2,7 +2,7 @@ use mc_source::TextRange;
 use mc_syntax::SyntaxNode;
 
 /// A collection of diagnostics in a single file.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diagnostics {
   diagnostics: Vec<Diagnostic>,
 }
