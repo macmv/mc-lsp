@@ -31,9 +31,11 @@ fn start() -> Result<(), JsValue> {
   console_log::init().unwrap();
 
   let current = Rc::new(RefCell::new(None));
+  let preview = Rc::new(RefCell::new(Preview::new()));
 
   {
     let current = current.clone();
+    let preview = preview.clone();
     event::listen(move |m: Message| match m {
       Message::RenderModel { model } => {
         info!("rendering model {:?}", model);
@@ -44,7 +46,8 @@ fn start() -> Result<(), JsValue> {
 
         let texture_names = model.textures().map(|s| s.to_owned()).collect();
 
-        let current = current.clone();
+        let handle = current.clone();
+        let preview = preview.clone();
         context.clone().load_images(&texture_names, move |textures| {
           let width = textures.values().map(|t| t.width()).sum();
           let height = textures.values().map(|t| t.height()).max().unwrap();
@@ -71,46 +74,37 @@ fn start() -> Result<(), JsValue> {
           let buffers = model::render(&model, &uv_map);
           let render = Render::new(context, buffers).unwrap();
 
-          let preview = Preview::new();
-          let preview = Rc::new(RefCell::new(preview));
-
           let preview_2 = preview.clone();
-          let handle = render.setup_loop(move |render| {
+          let handle_2 = render.setup_loop(move |render| {
             render.clear();
             preview_2.borrow_mut().update();
 
             preview_2.borrow().draw(render);
           });
 
-          *current.borrow_mut() = Some((preview, handle));
+          *handle.borrow_mut() = Some(handle_2);
         });
       }
     });
   }
 
   {
-    let current = current.clone();
+    let preview = preview.clone();
     event::on_mouse_move(move |x, y| {
-      if let Some((preview, _)) = current.borrow().as_ref() {
-        preview.borrow_mut().mouse_move(x, y);
-      }
+      preview.borrow_mut().mouse_move(x, y);
     });
   }
 
   {
-    let current = current.clone();
+    let preview = preview.clone();
     event::on_mouse_down(move || {
-      if let Some((preview, _)) = current.borrow().as_ref() {
-        preview.borrow_mut().mouse_down();
-      }
+      preview.borrow_mut().mouse_down();
     });
   }
   {
-    let current = current.clone();
+    let preview = preview.clone();
     event::on_mouse_up(move || {
-      if let Some((preview, _)) = current.borrow().as_ref() {
-        preview.borrow_mut().mouse_up();
-      }
+      preview.borrow_mut().mouse_up();
     });
   }
 
