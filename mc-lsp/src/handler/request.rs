@@ -172,10 +172,17 @@ pub fn handle_hover(
 }
 
 pub fn handle_canonical_model(
-  _snap: GlobalStateSnapshot,
-  _params: super::CanonicalModelParams,
+  snap: GlobalStateSnapshot,
+  params: super::CanonicalModelParams,
 ) -> Result<Option<super::CanonicalModelResponse>, Box<dyn Error>> {
-  Ok(None)
+  let path = Path::new(params.uri.path());
+  if let Some(file) = snap.files.read().get_absolute(path) {
+    let model = snap.analysis.canonical_model(file)?;
+
+    Ok(Some(super::CanonicalModelResponse { model }))
+  } else {
+    Ok(None)
+  }
 }
 
 struct TokenModifier {

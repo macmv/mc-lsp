@@ -1,4 +1,4 @@
-use lsp_types::request::Request;
+use lsp_types::{request::Request, Url};
 use serde::{Deserialize, Serialize};
 
 pub mod notification;
@@ -14,7 +14,7 @@ impl Request for CanonicalModel {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CanonicalModelParams {
-  pub uri: String,
+  pub uri: Url,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
