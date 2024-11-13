@@ -84,10 +84,22 @@ pub struct Faces {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Face {
-  pub uv:      [i64; 4], // FIXME: `f64` but Eq
+  pub uv:      [F64Eq; 4],
   pub texture: NodeId,
   pub cull:    bool,
 }
+
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct F64Eq(f64);
+
+impl From<f64> for F64Eq {
+  fn from(f: f64) -> Self { Self(f) }
+}
+impl Into<f64> for F64Eq {
+  fn into(self) -> f64 { self.0 }
+}
+
+impl Eq for F64Eq {}
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Pos {

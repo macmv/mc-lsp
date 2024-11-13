@@ -94,10 +94,7 @@ impl Parser<'_> {
     match p {
       ast::Value::Array(ref elems) if elems.values().count() == 3 => {
         for (i, elem) in elems.values().enumerate().take(3) {
-          let Some(n) = elem.as_i64() else {
-            self.diagnostics.error(elem.syntax(), "expected number");
-            continue;
-          };
+          let Some(n) = self.int(&elem) else { continue };
 
           match i {
             0 => pos.x = n,
@@ -142,8 +139,11 @@ impl Parser<'_> {
   }
 
   fn parse_face(&mut self, f: ast::Value) -> Option<NodeId> {
-    let mut face =
-      Face { uv: [0; 4], texture: NodeId::from_raw(RawIdx::from_u32(0)), cull: false };
+    let mut face = Face {
+      uv:      [0.0.into(); 4],
+      texture: NodeId::from_raw(RawIdx::from_u32(0)),
+      cull:    false,
+    };
 
     let obj = self.parse_object(f)?;
 
@@ -152,7 +152,7 @@ impl Parser<'_> {
         "uv" => {
           if let Some(arr) = self.arr(value) {
             for (i, item) in arr.values().enumerate() {
-              face.uv[i] = item.as_i64().unwrap_or(0);
+              face.uv[i] = self.float(&item).unwrap_or_default().into();
             }
           }
         }
@@ -209,11 +209,20 @@ impl Parser<'_> {
       }
     }
   }
+  fn float(&mut self, p: &ast::Value) -> Option<f64> {
+    match p.as_f64() {
+      Some(n) => Some(n),
+      None => {
+        self.diagnostics.error(p.syntax(), "expected float");
+        None
+      }
+    }
+  }
   fn int(&mut self, p: &ast::Value) -> Option<i64> {
     match p.as_i64() {
       Some(n) => Some(n),
       None => {
-        self.diagnostics.error(p.syntax(), "expected number");
+        self.diagnostics.error(p.syntax(), "expected integer");
         None
       }
     }

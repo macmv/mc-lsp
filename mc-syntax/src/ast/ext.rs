@@ -17,6 +17,13 @@ impl ast::Value {
     }
   }
 
+  pub fn as_f64(&self) -> Option<f64> {
+    match self {
+      ast::Value::NumberValue(s) => s.syntax.text().to_string().parse().ok(),
+      _ => None,
+    }
+  }
+
   pub fn as_bool(&self) -> Option<bool> {
     match self {
       ast::Value::Boolean(s) => Some(s.syntax.text().to_string() == "true"),
