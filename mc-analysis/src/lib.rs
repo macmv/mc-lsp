@@ -98,6 +98,7 @@ impl Analysis {
         models.push(m);
         m = db.parse_model(id);
       }
+      models.push(m);
 
       let mut model = mc_message::Model { elements: vec![] };
 
