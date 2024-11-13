@@ -140,7 +140,7 @@ impl Parser<'_> {
 
   fn parse_face(&mut self, f: ast::Value) -> Option<NodeId> {
     let mut face = Face {
-      uv:      [0.0.into(); 4],
+      uv:      [0.0.into(), 0.0.into(), 16.0.into(), 16.0.into()],
       texture: NodeId::from_raw(RawIdx::from_u32(0)),
       cull:    false,
     };
