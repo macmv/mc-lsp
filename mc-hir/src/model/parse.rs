@@ -135,9 +135,16 @@ impl Parser<'_> {
 
     let obj = self.parse_object(f, |p, _, key_syntax, key, value| match key {
       "uv" => {
-        if let ast::Value::Array(arr) = value {
+        if let Some(arr) = p.arr(value) {
           for (i, item) in arr.values().enumerate() {
             face.uv[i] = item.as_i64().unwrap_or(0);
+          }
+        }
+      }
+      "rotation" => {
+        if let Some(n) = p.int(&value) {
+          if n % 45 != 0 {
+            p.diagnostics.error(value.syntax(), "rotation must be a multiple of 45");
           }
         }
       }
@@ -180,6 +187,25 @@ impl Parser<'_> {
       }
       _ => {
         self.diagnostics.error(object.syntax(), "expected object");
+        None
+      }
+    }
+  }
+
+  fn arr(&mut self, p: ast::Value) -> Option<ast::Array> {
+    match p {
+      ast::Value::Array(arr) => Some(arr),
+      _ => {
+        self.diagnostics.error(p.syntax(), "expected array");
+        None
+      }
+    }
+  }
+  fn int(&mut self, p: &ast::Value) -> Option<i64> {
+    match p.as_i64() {
+      Some(n) => Some(n),
+      None => {
+        self.diagnostics.error(p.syntax(), "expected number");
         None
       }
     }
