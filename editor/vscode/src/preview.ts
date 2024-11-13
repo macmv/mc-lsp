@@ -26,26 +26,36 @@ export class Preview {
     });
   }
 
-  async render(model: Uri) {
-    // TODO: Fetch this from the language server, which will build the canonical model format.
-    const content = JSON.parse(readFileSync(model.fsPath).toString());
+  async render(model: any) {
+    for (const [i, element] of model.elements.entries()) {
+      for (const f of ["up", "down", "east", "west", "north", "south"]) {
+        if (element.faces[f] === undefined) {
+          continue;
+        }
 
-    for (const [key, texture] of Object.entries(content.textures)) {
-      const namespace = (texture as any).split(":")[0];
-      const rel_path = (texture as any).split(":")[1];
-      const path = this.panel.webview.asWebviewUri(
-        Uri.parse(
-          `file://${vscode.workspace.rootPath}/src/main/resources/assets/${namespace}/textures/${rel_path}.png`
-        )
-      );
+        const face = element.faces[f];
+        const texture = face.texture as any as string;
 
-      content.textures[key] = path.toString();
+        const namespace = texture.split(":")[0];
+        const rel_path = texture.split(":")[1];
+        if (rel_path === undefined) {
+          // Just... don't
+          delete element.faces[f];
+          continue;
+        }
+
+        const path = this.panel.webview.asWebviewUri(
+          Uri.parse(
+            `file://${vscode.workspace.rootPath}/src/main/resources/assets/${namespace}/textures/${rel_path}.png`
+          )
+        );
+
+        face.texture = path.toString();
+      }
     }
 
     await this.panel.webview.postMessage({
-      RenderModel: {
-        model: content,
-      },
+      RenderModel: { model },
     });
   }
 }

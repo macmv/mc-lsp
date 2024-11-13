@@ -27,12 +27,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
       const uri = vscode.window.visibleTextEditors[0].document.uri!;
 
-      client.sendRequest("mc-lsp/canonicalModel", { uri: uri.toString() });
+      const res: any = await client.sendRequest("mc-lsp/canonicalModel", {
+        uri: uri.toString(),
+      });
 
       const preview = new Preview(context, panel);
       await preview.setup();
 
-      await preview.render(uri);
+      await preview.render(res.model);
     })
   );
 
