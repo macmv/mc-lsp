@@ -56,6 +56,27 @@ impl Validator<'_> {
         format!("texture `{}` is defined but not used", texture.name),
       );
     }
+
+    if !texture.value.starts_with("#") {
+      let mut path: Path = texture.value.parse().unwrap();
+
+      // FIXME: Extract to its own type.
+      path.segments.insert(0, "textures".into());
+      *path.segments.last_mut().unwrap() += ".png";
+
+      // FIXME: Extract to a function.
+      let workspace = self.db.workspace();
+      let file = workspace.namespaces.iter().find_map(|n| {
+        n.files.iter().find_map(|&(id, ref p)| if &path == p { Some(id) } else { None })
+      });
+
+      if file.is_none() {
+        self.diagnostics.error(
+          self.source_map.texture_defs[&id].to_node(&self.json),
+          format!("texture `{}` not found", texture.value),
+        );
+      }
+    }
   }
 
   fn validate_texture(&mut self, id: NodeId, texture: &Texture) {
