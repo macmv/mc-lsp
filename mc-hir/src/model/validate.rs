@@ -90,6 +90,10 @@ impl<'a> ModelValidator<'a> {
   }
 
   fn is_texture_def_used(&self, name: &str) -> bool {
+    if name == "particle" {
+      return true;
+    }
+
     self.model.nodes.values().any(|node| match node {
       Node::Texture(Texture::Reference(n)) => name == *n,
       Node::TextureDef(def) => def.value.strip_prefix("#") == Some(name),
