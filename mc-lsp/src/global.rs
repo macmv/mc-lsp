@@ -9,7 +9,10 @@ use std::{collections::HashMap, error::Error, path::PathBuf, sync::Arc};
 
 use lsp_types::{notification::Notification, Url};
 
-use crate::files::{FileContent, Files};
+use crate::{
+  files::{FileContent, Files},
+  handler,
+};
 
 pub struct GlobalState {
   pub sender: Sender<lsp_server::Message>,
@@ -230,7 +233,9 @@ impl GlobalState {
       .on::<lsp_request::GotoDefinition>(request::handle_goto_definition)
       .on::<lsp_request::DocumentHighlightRequest>(request::handle_document_highlight)
       .on::<lsp_request::HoverRequest>(request::handle_hover)
-      .on::<lsp_request::Completion>(request::handle_completion);
+      .on::<lsp_request::Completion>(request::handle_completion)
+      // Custom messages
+      .on::<handler::CanonicalModel>(request::handle_canonical_model);
   }
 
   fn handle_notification(&mut self, not: lsp_server::Notification) {

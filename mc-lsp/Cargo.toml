@@ -17,3 +17,4 @@ la-arena = "0.3.1"
 mc-analysis.workspace = true
 mc-gradle.workspace = true
 mc-source.workspace = true
+serde = { version = "1.0.215", features = ["derive"] }

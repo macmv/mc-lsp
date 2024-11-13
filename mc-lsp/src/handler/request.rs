@@ -171,6 +171,13 @@ pub fn handle_hover(
   */
 }
 
+pub fn handle_canonical_model(
+  _snap: GlobalStateSnapshot,
+  _params: super::CanonicalModelParams,
+) -> Result<Option<super::CanonicalModelResponse>, Box<dyn Error>> {
+  Ok(None)
+}
+
 struct TokenModifier {
   stat: bool,
 }
