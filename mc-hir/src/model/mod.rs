@@ -44,8 +44,10 @@ pub struct ModelSourceMap {
   pub faces:        HashMap<NodeId, AstPtr<ast::Object>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModelPath(Path);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ModelPath {
+  pub path: Path,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Parent {

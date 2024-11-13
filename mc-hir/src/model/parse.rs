@@ -44,7 +44,7 @@ impl Parser<'_> {
       self.diagnostics.error(p.syntax(), "expected string");
       return None;
     };
-    Some(ModelPath(path.parse().ok()?))
+    Some(ModelPath { path: path.parse().ok()? })
   }
 
   fn parse_textures(&mut self, textures: ast::Value) {

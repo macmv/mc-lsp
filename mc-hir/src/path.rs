@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 /// A namespaced resource path.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Path {
   pub namespace: String,
   pub segments:  Vec<String>,
