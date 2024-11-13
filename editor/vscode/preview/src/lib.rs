@@ -57,10 +57,10 @@ fn start() -> Result<(), JsValue> {
             uv_map.insert(
               k.as_str(),
               (
-                x as f32 / width as f32,
+                x as f64 / width as f64,
                 0.0,
-                t.width() as f32 / width as f32,
-                t.height() as f32 / height as f32,
+                t.width() as f64 / width as f64,
+                t.height() as f64 / height as f64,
               ),
             );
 

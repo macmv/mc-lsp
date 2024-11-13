@@ -51,7 +51,7 @@ impl Faces {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Face {
-  pub uv:      [f32; 4],
+  pub uv:      [f64; 4],
   pub texture: String,
 }
 

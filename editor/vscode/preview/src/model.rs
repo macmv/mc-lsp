@@ -9,10 +9,10 @@ pub struct Buffers {
 
 struct Builder<'a> {
   buffers: &'a mut Buffers,
-  uv_map:  &'a HashMap<&'a str, (f32, f32, f32, f32)>,
+  uv_map:  &'a HashMap<&'a str, (f64, f64, f64, f64)>,
 }
 
-pub fn render(model: &mc_message::Model, uv_map: &HashMap<&str, (f32, f32, f32, f32)>) -> Buffers {
+pub fn render(model: &mc_message::Model, uv_map: &HashMap<&str, (f64, f64, f64, f64)>) -> Buffers {
   let mut buffers = Buffers::default();
 
   let mut builder = Builder { buffers: &mut buffers, uv_map };
@@ -111,8 +111,8 @@ impl Builder<'_> {
     element: &mc_message::Element,
     dir: Dir,
     mut p: mc_message::Pos,
-    u: f32,
-    v: f32,
+    u: f64,
+    v: f64,
   ) {
     let mut normal = dir.as_normal();
 
@@ -152,7 +152,7 @@ impl Builder<'_> {
     */
 
     self.buffers.pos.push([p.x as f32, p.y as f32, p.z as f32]);
-    self.buffers.uv.push([u, v]);
+    self.buffers.uv.push([u as f32, v as f32]);
     self.buffers.normal.push([normal.x as f32, normal.y as f32, normal.z as f32]);
     /*
       tint:     [(tint_r * 255.0) as u8, (tint_g * 255.0) as u8, (tint_b * 255.0) as u8],
