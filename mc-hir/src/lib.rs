@@ -106,19 +106,10 @@ fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
           continue;
         }
 
-        let first = t.value.split(":").next();
-        let second = t.value.split(":").nth(1);
+        let mut path: Path = t.value.parse().unwrap();
 
-        let (namespace, value) = match (first, second) {
-          (Some(namespace), Some(value)) => (namespace, value),
-          (Some(name), None) => ("minecraft", name),
-          _ => continue,
-        };
-
-        // FIXME: There's like 8 different ways this is wrong. At the very least, we
-        // should derive the `assets` path from the path of the current
-        // model file.
-        let path: Path = format!("{namespace}:textures/{value}.png").parse().unwrap();
+        path.segments.insert(0, "textures".into());
+        *path.segments.last_mut().unwrap() += ".png";
 
         let workspace = db.workspace();
         let file = workspace.namespaces.iter().find_map(|n| {
