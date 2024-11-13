@@ -72,12 +72,31 @@ impl Parser<'_> {
   fn parse_pos(&mut self, p: ast::Value) -> Pos {
     let mut pos = Pos::default();
 
-    self.parse_object(p, |_, _, _, key, value| match key {
-      "x" => pos.x = value.as_i64().unwrap_or(0),
-      "y" => pos.y = value.as_i64().unwrap_or(0),
-      "z" => pos.z = value.as_i64().unwrap_or(0),
-      _ => {}
-    });
+    match p {
+      ast::Value::Array(ref elems) if elems.values().count() == 3 => {
+        for (i, elem) in elems.values().enumerate().take(3) {
+          let Some(n) = elem.as_i64() else {
+            self.diagnostics.error(elem.syntax(), "expected number");
+            continue;
+          };
+
+          match i {
+            0 => pos.x = n,
+            1 => pos.y = n,
+            2 => pos.z = n,
+            _ => {}
+          }
+        }
+      }
+
+      ast::Value::Array(ref elems) => {
+        self.diagnostics.error(elems.syntax(), "expected 3 elements");
+      }
+
+      _ => {
+        self.diagnostics.error(p.syntax(), "expected array");
+      }
+    }
 
     pos
   }
@@ -151,7 +170,10 @@ impl Parser<'_> {
 
         Some(obj)
       }
-      _ => None,
+      _ => {
+        self.diagnostics.error(object.syntax(), "expected object");
+        None
+      }
     }
   }
 
