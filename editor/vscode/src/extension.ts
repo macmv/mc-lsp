@@ -12,6 +12,8 @@ import { Preview } from "./preview";
 export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "mclsp" is now active!');
 
+  let client: LanguageClient;
+
   context.subscriptions.push(
     vscode.commands.registerCommand("mclsp.previewModel", async () => {
       const panel = vscode.window.createWebviewPanel(
@@ -23,10 +25,14 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       );
 
+      const uri = vscode.window.visibleTextEditors[0].document.uri!;
+
+      client.sendRequest("mc-lsp/canonicalModel", { uri: uri.toString() });
+
       const preview = new Preview(context, panel);
       await preview.setup();
 
-      await preview.render(vscode.window.visibleTextEditors[0].document.uri!);
+      await preview.render(uri);
     })
   );
 
@@ -51,7 +57,7 @@ export async function activate(context: vscode.ExtensionContext) {
     revealOutputChannelOn: RevealOutputChannelOn.Info,
   };
 
-  const client = new LanguageClient(
+  client = new LanguageClient(
     "mclsp",
     "MC LSP",
 
