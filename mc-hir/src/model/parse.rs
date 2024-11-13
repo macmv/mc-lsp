@@ -62,6 +62,7 @@ impl Parser<'_> {
       "from" => element.from = p.parse_pos(value),
       "to" => element.to = p.parse_pos(value),
       "faces" => element.faces = p.parse_faces(value),
+      "rotation" => {}
       _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
     });
 
