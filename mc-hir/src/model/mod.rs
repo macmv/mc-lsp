@@ -65,14 +65,14 @@ pub enum Texture {
   Reference(String),
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Element {
   pub from:  Pos,
   pub to:    Pos,
   pub faces: Faces,
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Faces {
   pub north: Option<NodeId>,
   pub east:  Option<NodeId>,
@@ -82,7 +82,7 @@ pub struct Faces {
   pub down:  Option<NodeId>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Face {
   pub uv:      [F64Eq; 4],
   pub texture: NodeId,
@@ -101,7 +101,7 @@ impl Into<f64> for F64Eq {
 
 impl Eq for F64Eq {}
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Pos {
   pub x: F64Eq,
   pub y: F64Eq,

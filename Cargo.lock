@@ -680,6 +680,7 @@ dependencies = [
  "line-index",
  "log",
  "mc-hir",
+ "mc-message",
  "mc-source",
  "mc-syntax",
  "mc-test",
