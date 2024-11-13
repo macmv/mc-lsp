@@ -31,6 +31,7 @@ pub trait HirDatabase: SourceDatabase {
   fn lookup_model(&self, path: ModelPath) -> Option<FileId>;
 
   fn def_at_index(&self, pos: FileLocation) -> Option<FileRange>;
+  fn node_at_index(&self, pos: FileLocation) -> Option<model::NodeId>;
   fn def_at_node(&self, file: FileId, node: model::NodeId) -> Option<FileRange>;
 }
 
@@ -50,7 +51,7 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
   namespace.files.iter().find_map(|&(id, ref f)| if *f == search_path { Some(id) } else { None })
 }
 
-fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
+fn node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<model::NodeId> {
   let ast = db.parse_json(pos.file);
   let (_, source_map, _) = db.parse_model_with_source_map(pos.file);
 
@@ -65,19 +66,23 @@ fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
     })
     .unwrap();
 
-  let node = token.parent_ancestors().find_map(|node| match node.kind() {
+  token.parent_ancestors().find_map(|node| match node.kind() {
     k if ast::Value::can_cast(k) => {
       let ptr = AstPtr::new(&ast::Value::cast(node).unwrap());
-      source_map.ast_values.get(&ptr)
+      source_map.ast_values.get(&ptr).copied()
     }
     k if ast::Element::can_cast(k) => {
       let ptr = AstPtr::new(&ast::Element::cast(node).unwrap());
-      source_map.ast_elements.get(&ptr)
+      source_map.ast_elements.get(&ptr).copied()
     }
     _ => None,
-  })?;
+  })
+}
 
-  db.def_at_node(pos.file, *node)
+fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
+  let node = db.node_at_index(pos)?;
+
+  db.def_at_node(pos.file, node)
 }
 
 fn def_at_node(db: &dyn HirDatabase, file: FileId, node: model::NodeId) -> Option<FileRange> {
