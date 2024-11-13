@@ -15,6 +15,22 @@ export async function activate(context: vscode.ExtensionContext) {
   let client: LanguageClient;
   let preview: Preview | undefined;
 
+  vscode.window.onDidChangeActiveTextEditor(async (editor) => {
+    if (
+      editor !== undefined &&
+      preview !== undefined &&
+      editor.document.uri !== undefined
+    ) {
+      const uri = editor.document.uri;
+
+      const res: any = await client.sendRequest("mc-lsp/canonicalModel", {
+        uri: uri.toString(),
+      });
+
+      await preview.render(res.model);
+    }
+  });
+
   context.subscriptions.push(
     vscode.commands.registerCommand("mclsp.previewModel", async () => {
       if (preview === undefined) {
