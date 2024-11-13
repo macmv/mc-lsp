@@ -119,10 +119,10 @@ pub fn validate_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Diagnostics>
   // parent.
   let json = db.parse_json(file_id);
 
-  let (model, source_map, diagnostics) = parse_model(db, file_id);
+  let (_, source_map, diagnostics) = parse_model(db, file_id);
   let mut diagnostics = (&*diagnostics).clone();
 
-  validate::validate(&model, &source_map, &json, &mut diagnostics);
+  validate::validate(db, file_id, &source_map, &json, &mut diagnostics);
 
   Arc::new(diagnostics)
 }
