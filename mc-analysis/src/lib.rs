@@ -96,7 +96,7 @@ impl Analysis {
       loop {
         // If elements are already defined, we're done. Children elements override all
         // elements in the parent.
-        if !model.elements.is_empty() {
+        if model.elements.is_empty() {
           for node in m.nodes.values() {
             match node {
               mc_hir::model::Node::Element(e) => {
