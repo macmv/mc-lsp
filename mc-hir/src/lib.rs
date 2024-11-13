@@ -31,6 +31,7 @@ pub trait HirDatabase: SourceDatabase {
   fn lookup_model(&self, path: ModelPath) -> Option<FileId>;
 
   fn def_at_index(&self, pos: FileLocation) -> Option<FileRange>;
+  fn def_at_node(&self, file: FileId, node: model::NodeId) -> Option<FileRange>;
 }
 
 fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Model> {
@@ -51,7 +52,7 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
 
 fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
   let ast = db.parse_json(pos.file);
-  let (model, source_map, _) = db.parse_model_with_source_map(pos.file);
+  let (_, source_map, _) = db.parse_model_with_source_map(pos.file);
 
   let token = ast
     .syntax_node()
@@ -76,7 +77,13 @@ fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
     _ => None,
   })?;
 
-  match model.nodes[*node] {
+  db.def_at_node(pos.file, *node)
+}
+
+fn def_at_node(db: &dyn HirDatabase, file: FileId, node: model::NodeId) -> Option<FileRange> {
+  let model = db.parse_model(file);
+
+  match model.nodes[node] {
     model::Node::Parent(ref p) => {
       let file = db.lookup_model(p.path.clone())?;
 
@@ -97,9 +104,12 @@ fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
         }
       })?;
 
+      // FIXME: Move this elsewhere, so `def_at_node` doesn't depend on the AST.
+      let ast = db.parse_json(file);
+      let (_, source_map, _) = db.parse_model_with_source_map(file);
       let element = source_map.texture_defs[&node].tree(&ast);
 
-      Some(FileRange { file: pos.file, range: Some(element.syntax().text_range()) })
+      Some(FileRange { file, range: Some(element.syntax().text_range()) })
     }
     model::Node::TextureDef(ref t) => {
       if t.value.starts_with("#") {
