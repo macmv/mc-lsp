@@ -6,7 +6,7 @@ mod database;
 #[macro_use]
 extern crate log;
 
-use std::{panic::UnwindSafe, sync::Arc};
+use std::{collections::HashMap, panic::UnwindSafe, sync::Arc};
 
 use database::{LineIndexDatabase, RootDatabase};
 use highlight::Highlight;
@@ -89,14 +89,24 @@ impl Analysis {
 
   pub fn canonical_model(&self, file: FileId) -> Cancellable<mc_message::Model> {
     self.with_db(|db| {
-      let mut model = mc_message::Model { elements: vec![] };
-
+      let mut models = vec![];
       // Recurse child-up.
       let mut m = db.parse_model(file);
       loop {
-        // If elements are already defined, we're done. Children elements override all
-        // elements in the parent.
-        if model.elements.is_empty() {
+        let Some(parent) = m.parent.as_ref() else { break };
+        let Some(id) = db.lookup_model(parent.clone()) else { break };
+        models.push(m);
+        m = db.parse_model(id);
+      }
+
+      let mut model = mc_message::Model { elements: vec![] };
+
+      // Recurse parent-down.
+      for m in models.into_iter().rev() {
+        // If this child defines elements, overwrite all of them.
+        if m.nodes.values().any(|n| matches!(n, mc_hir::model::Node::Element(_))) {
+          model.elements.clear();
+
           for node in m.nodes.values() {
             match node {
               mc_hir::model::Node::Element(e) => {
@@ -107,24 +117,25 @@ impl Analysis {
           }
         }
 
+        let mut texture_map = HashMap::<String, String>::new();
         for node in m.nodes.values() {
           match node {
             mc_hir::model::Node::TextureDef(ref def) => {
-              for element in model.elements.iter_mut() {
-                for face in element.faces.iter_mut() {
-                  if face.texture.strip_prefix("#") == Some(&def.name) {
-                    face.texture = def.value.clone();
-                  }
-                }
-              }
+              texture_map.insert(def.name.clone(), def.value.clone());
             }
             _ => {}
           }
         }
 
-        let Some(parent) = m.parent.as_ref() else { break };
-        let Some(id) = db.lookup_model(parent.clone()) else { break };
-        m = db.parse_model(id);
+        for element in model.elements.iter_mut() {
+          for face in element.faces.iter_mut() {
+            if let Some(name) = face.texture.strip_prefix("#") {
+              if let Some(actual) = texture_map.get(name) {
+                face.texture = actual.clone();
+              }
+            }
+          }
+        }
       }
 
       model
@@ -191,7 +202,7 @@ impl FromHir<model::Face> for mc_message::Face {
     mc_message::Face {
       uv:      [hir.uv[0].into(), hir.uv[1].into(), hir.uv[2].into(), hir.uv[3].into()],
       texture: match model.nodes[hir.texture] {
-        model::Node::Texture(model::Texture::Reference(ref t)) => t.clone(),
+        model::Node::Texture(model::Texture::Reference(ref t)) => format!("#{t}"),
         _ => unreachable!(),
       },
     }
