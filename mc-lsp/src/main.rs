@@ -65,17 +65,18 @@ fn run() -> Result<(), Box<dyn Error>> {
 
   let mut global = global::GlobalState::new(connection.sender);
 
+  let mut workspace = crate::search::discover_workspace(&mut global.files.write());
+
   match mc_gradle::extract_jar() {
     Ok(path) => {
       info!("extracted minecraft jar to: {}", path.display());
-      // global.set_client_path(it);
+      search::add_client_path(&mut workspace, &mut global.files.write(), &path);
     }
     Err(e) => {
       error!("failed to extract minecraft jar: {}", e);
     }
   }
 
-  let workspace = crate::search::discover_workspace(&mut global.files.write());
   global.set_workspace(workspace);
 
   global.run(connection.receiver)?;

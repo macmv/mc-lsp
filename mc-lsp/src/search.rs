@@ -2,16 +2,25 @@
 
 use std::{io, path, path::PathBuf};
 
-use mc_source::{FileId, Path};
+use mc_source::{FileId, Path, Workspace};
 
 use crate::files::{FileContent, Files};
 
-pub fn discover_workspace(files: &mut Files) -> mc_source::Workspace {
+pub fn discover_workspace(files: &mut Files) -> Workspace {
   // We assume the root is the current directory. Then, we search for assets.
 
-  let mut namespaces = vec![];
+  let mut workspace = Workspace { namespaces: vec![] };
 
-  let path = path::Path::new("./src/main/resources/assets");
+  discover_assets_in(&mut workspace, files, path::Path::new("./src/main/resources/assets"));
+
+  workspace
+}
+
+pub fn add_client_path(workspace: &mut Workspace, files: &mut Files, path: &path::Path) {
+  discover_assets_in(workspace, files, &path.join("assets"));
+}
+
+fn discover_assets_in(workspace: &mut Workspace, files: &mut Files, path: &path::Path) {
   for entry in std::fs::read_dir(path).unwrap() {
     let name = entry.unwrap().file_name();
 
@@ -22,11 +31,10 @@ pub fn discover_workspace(files: &mut Files) -> mc_source::Workspace {
     files.change_root(root_path.clone());
     discover_sources(&root_path, &rel_path, &mut sources, files).unwrap();
 
-    namespaces
+    workspace
+      .namespaces
       .push(mc_source::Namespace { name: name.to_string_lossy().into_owned(), files: sources });
   }
-
-  mc_source::Workspace { namespaces }
 }
 
 fn discover_sources(
