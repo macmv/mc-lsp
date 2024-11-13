@@ -1,11 +1,8 @@
 //! Converts files and a BSP workspace into FileIds and SourceRootIds.
 
-use std::{
-  io,
-  path::{Path, PathBuf},
-};
+use std::{io, path, path::PathBuf};
 
-use mc_source::FileId;
+use mc_source::{FileId, Path};
 
 use crate::files::{FileContent, Files};
 
@@ -14,14 +11,16 @@ pub fn discover_workspace(files: &mut Files) -> mc_source::Workspace {
 
   let mut namespaces = vec![];
 
-  let path = Path::new("./src/main/resources/assets");
+  let path = path::Path::new("./src/main/resources/assets");
   for entry in std::fs::read_dir(path).unwrap() {
     let name = entry.unwrap().file_name();
+
+    let rel_path = mc_source::Path::new(name.to_string_lossy().to_string());
 
     let mut sources = vec![];
     let root_path: PathBuf = path.join(&name).canonicalize().unwrap();
     files.change_root(root_path.clone());
-    discover_sources(&root_path, &mut sources, files).unwrap();
+    discover_sources(&root_path, &rel_path, &mut sources, files).unwrap();
 
     namespaces
       .push(mc_source::Namespace { name: name.to_string_lossy().into_owned(), files: sources });
@@ -31,21 +30,27 @@ pub fn discover_workspace(files: &mut Files) -> mc_source::Workspace {
 }
 
 fn discover_sources(
-  path: impl AsRef<Path>,
-  sources: &mut Vec<(FileId, PathBuf)>,
+  path: &path::Path,
+  rel_path: &Path,
+  sources: &mut Vec<(FileId, Path)>,
   files: &mut Files,
 ) -> io::Result<()> {
   for entry in std::fs::read_dir(path)? {
     let entry = entry?;
     let path = entry.path();
     if path.is_dir() {
-      discover_sources(&path, sources, files)?;
-    } else if let Some(relative) = files.relative_path(&path) {
+      discover_sources(path.as_path(), &rel_path, sources, files)?;
+    } else if let Some(r) = files.relative_path(&path) {
+      let mut relative = Path::new(rel_path.namespace.clone());
+      for segment in r.iter() {
+        relative.segments.push(segment.to_string_lossy().to_string());
+      }
+
       match files.get_absolute(&path) {
         Some(id) => {
           sources.push((id, relative.into()));
         }
-        None => match relative.extension() {
+        None => match r.extension() {
           Some(ext) if ext == "json" => {
             let id = files.create(&path);
             let content = std::fs::read_to_string(&path)?;

@@ -6,13 +6,13 @@ mod database;
 #[macro_use]
 extern crate log;
 
-use std::{panic::UnwindSafe, path::Path, sync::Arc};
+use std::{panic::UnwindSafe, sync::Arc};
 
 use database::{LineIndexDatabase, RootDatabase};
 use highlight::Highlight;
 use line_index::LineIndex;
 use mc_hir::{diagnostic::Diagnostics, model, HirDatabase};
-use mc_source::{FileId, FileLocation, FileRange, SourceDatabase, Workspace};
+use mc_source::{FileId, FileLocation, FileRange, Path, SourceDatabase, Workspace};
 use mc_syntax::{
   ast::{self, AstNode},
   AstPtr, T,
@@ -152,17 +152,15 @@ impl Analysis {
             // FIXME: There's like 8 different ways this is wrong. At the very least, we
             // should derive the `assets` path from the path of the current
             // model file.
-            let texture_path =
-              format!("src/main/resources/assets/{namespace}/textures/{value}.png");
-            let path = Path::new(&texture_path);
+            let path: Path = format!("{namespace}:textures/{value}.png").parse().unwrap();
 
             let workspace = db.workspace();
             let file = workspace.namespaces.iter().find_map(|n| {
-              n.files.iter().find_map(|(id, p)| if path == p { Some(id) } else { None })
+              n.files.iter().find_map(|&(id, ref p)| if &path == p { Some(id) } else { None })
             });
 
             if let Some(file) = file {
-              return Some(FileRange { file: *file, range: None });
+              return Some(FileRange { file, range: None });
             }
           }
 

@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, path::PathBuf, sync::Arc};
+use std::{marker::PhantomData, sync::Arc};
 
 use mc_syntax::Parse;
 
@@ -95,7 +95,7 @@ pub struct Namespace {
   pub name: String,
 
   /// Files and their relative paths.
-  pub files: Vec<(FileId, PathBuf)>,
+  pub files: Vec<(FileId, Path)>,
 }
 
 fn parse<T: FileType>(db: &dyn SourceDatabase, file_id: FileId) -> Parse<T::Source> {

@@ -7,6 +7,10 @@ pub struct Path {
   pub segments:  Vec<String>,
 }
 
+impl Path {
+  pub fn new(namespace: String) -> Self { Path { namespace, segments: vec![] } }
+}
+
 impl FromStr for Path {
   type Err = ();
 
