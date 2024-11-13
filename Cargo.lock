@@ -709,6 +709,7 @@ name = "mc-hir"
 version = "0.1.0"
 dependencies = [
  "la-arena",
+ "log",
  "mc-source",
  "mc-syntax",
  "salsa",

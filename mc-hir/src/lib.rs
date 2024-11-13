@@ -7,6 +7,10 @@ use model::Model;
 pub mod diagnostic;
 pub mod model;
 
+#[allow(unused_imports)]
+#[macro_use]
+extern crate log;
+
 #[salsa::query_group(HirDatabaseStorage)]
 pub trait HirDatabase: SourceDatabase {
   #[salsa::invoke(model::parse_model)]
