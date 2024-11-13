@@ -35,7 +35,6 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
   // FIXME: This needs a lot of redoing.
   let mut search_path = path.path.clone();
   search_path.segments.insert(0, "models".into());
-  search_path.segments.insert(1, "block".into());
   *search_path.segments.last_mut().unwrap() += ".json";
 
   namespace.files.iter().find_map(|&(id, ref f)| if *f == search_path { Some(id) } else { None })

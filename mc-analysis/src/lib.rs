@@ -112,6 +112,12 @@ impl Analysis {
 
       for node in nodes {
         match model.nodes[*node] {
+          model::Node::Parent(ref p) => {
+            let file = db.lookup_model(p.path.clone());
+
+            return file.map(|f| FileRange { file: f, range: None });
+          }
+
           model::Node::Texture(ref t) => {
             let name = match t {
               model::Texture::Reference(t) => t,

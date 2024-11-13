@@ -200,6 +200,7 @@ impl ModelNode for Parent {
   fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::Parent(self));
     parser.source_map.parent.insert(id, AstPtr::new(&elem));
+    parser.source_map.ast_values.insert(AstPtr::new(&elem), id);
     id
   }
 }
