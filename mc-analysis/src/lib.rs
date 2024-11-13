@@ -157,8 +157,9 @@ impl Analysis {
             let path = Path::new(&texture_path);
 
             let workspace = db.workspace();
-            let file =
-              workspace.files.iter().find_map(|(id, p)| if path == p { Some(id) } else { None });
+            let file = workspace.namespaces.iter().find_map(|n| {
+              n.files.iter().find_map(|(id, p)| if path == p { Some(id) } else { None })
+            });
 
             if let Some(file) = file {
               return Some(FileRange { file: *file, range: None });

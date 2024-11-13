@@ -10,15 +10,24 @@ use mc_source::FileId;
 use crate::files::{FileContent, Files};
 
 pub fn discover_workspace(files: &mut Files) -> mc_source::Workspace {
-  // We assume the root is the current directory.
-  let mut sources = vec![];
-  let root_path: PathBuf = Path::new(".").canonicalize().unwrap();
-  files.change_root(root_path.clone());
-  discover_sources(&root_path, &mut sources, files).unwrap();
+  // We assume the root is the current directory. Then, we search for assets.
 
-  files.change_root(root_path);
+  let mut namespaces = vec![];
 
-  mc_source::Workspace { files: sources }
+  let path = Path::new("./src/main/resources/assets");
+  for entry in std::fs::read_dir(path).unwrap() {
+    let name = entry.unwrap().file_name();
+
+    let mut sources = vec![];
+    let root_path: PathBuf = path.join(&name).canonicalize().unwrap();
+    files.change_root(root_path.clone());
+    discover_sources(&root_path, &mut sources, files).unwrap();
+
+    namespaces
+      .push(mc_source::Namespace { name: name.to_string_lossy().into_owned(), files: sources });
+  }
+
+  mc_source::Workspace { namespaces }
 }
 
 fn discover_sources(

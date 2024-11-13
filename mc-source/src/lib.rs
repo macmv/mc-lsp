@@ -84,6 +84,13 @@ impl FileType for Json {
 
 #[derive(Default, Debug)]
 pub struct Workspace {
+  pub namespaces: Vec<Namespace>,
+}
+
+#[derive(Default, Debug)]
+pub struct Namespace {
+  pub name: String,
+
   /// Files and their relative paths.
   pub files: Vec<(FileId, PathBuf)>,
 }
