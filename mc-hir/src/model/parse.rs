@@ -37,6 +37,8 @@ impl Parser<'_> {
         }
         "textures" => self.parse_textures(value),
         "elements" => self.parse_elements(value),
+        "gui_light" => {}
+        "display" => {}
         _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
     }
