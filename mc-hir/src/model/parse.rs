@@ -27,7 +27,12 @@ impl Parser<'_> {
   fn parse_root(&mut self, json: &ast::Json) {
     let Some(root) = json.value() else { return };
     self.parse_object(root, |p, _, key_syntax, key, value| match key {
-      "parent" => p.model.parent = p.parse_path(value),
+      "parent" => {
+        if let Some(path) = p.parse_path(value.clone()) {
+          p.alloc(value, Parent { path: path.clone() });
+          p.model.parent = Some(path);
+        }
+      }
       "textures" => p.parse_textures(value),
       "elements" => p.parse_elements(value),
       _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
@@ -35,7 +40,10 @@ impl Parser<'_> {
   }
 
   fn parse_path(&mut self, p: ast::Value) -> Option<ModelPath> {
-    let path = p.as_str()?;
+    let Some(path) = p.as_str() else {
+      self.diagnostics.error(p.syntax(), "expected string");
+      return None;
+    };
     Some(ModelPath(path.parse().ok()?))
   }
 
@@ -184,6 +192,16 @@ trait ModelNode {
   type Ast;
 
   fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId;
+}
+
+impl ModelNode for Parent {
+  type Ast = ast::Value;
+
+  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
+    let id = parser.model.nodes.alloc(Node::Parent(self));
+    parser.source_map.parent.insert(id, AstPtr::new(&elem));
+    id
+  }
 }
 
 impl ModelNode for TextureDef {

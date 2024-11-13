@@ -25,6 +25,7 @@ pub type NodeId = Idx<Node>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Node {
+  Parent(Parent),
   TextureDef(TextureDef),
   Texture(Texture),
   Element(Element),
@@ -36,14 +37,20 @@ pub struct ModelSourceMap {
   pub ast_values:   HashMap<AstPtr<ast::Value>, NodeId>,
   pub ast_elements: HashMap<AstPtr<ast::Element>, NodeId>,
 
+  pub parent:       HashMap<NodeId, AstPtr<ast::Value>>,
   pub texture_defs: HashMap<NodeId, AstPtr<ast::Element>>,
   pub textures:     HashMap<NodeId, AstPtr<ast::Value>>,
   pub elements:     HashMap<NodeId, AstPtr<ast::Object>>,
   pub faces:        HashMap<NodeId, AstPtr<ast::Object>>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelPath(Path);
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Parent {
+  pub path: ModelPath,
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct TextureDef {
