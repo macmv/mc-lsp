@@ -107,6 +107,21 @@ impl Analysis {
           }
         }
 
+        for node in m.nodes.values() {
+          match node {
+            mc_hir::model::Node::TextureDef(ref def) => {
+              for element in model.elements.iter_mut() {
+                for face in element.faces.iter_mut() {
+                  if face.texture.strip_prefix("#") == Some(&def.name) {
+                    face.texture = def.value.clone();
+                  }
+                }
+              }
+            }
+            _ => {}
+          }
+        }
+
         let Some(parent) = m.parent.as_ref() else { break };
         let Some(id) = db.lookup_model(parent.clone()) else { break };
         m = db.parse_model(id);

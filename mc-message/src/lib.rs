@@ -147,3 +147,16 @@ impl std::ops::Div for Pos {
     Pos { x: self.x / rhs.x, y: self.y / rhs.y, z: self.z / rhs.z }
   }
 }
+
+impl Faces {
+  pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Face> {
+    self
+      .up
+      .iter_mut()
+      .chain(self.down.iter_mut())
+      .chain(self.north.iter_mut())
+      .chain(self.south.iter_mut())
+      .chain(self.east.iter_mut())
+      .chain(self.west.iter_mut())
+  }
+}
