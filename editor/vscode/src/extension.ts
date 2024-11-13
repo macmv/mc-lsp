@@ -13,17 +13,28 @@ export async function activate(context: vscode.ExtensionContext) {
   console.log('Congratulations, your extension "mclsp" is now active!');
 
   let client: LanguageClient;
+  let preview: Preview | undefined;
 
   context.subscriptions.push(
     vscode.commands.registerCommand("mclsp.previewModel", async () => {
-      const panel = vscode.window.createWebviewPanel(
-        "previewModel",
-        "Preview Model",
-        vscode.ViewColumn.Two,
-        {
-          enableScripts: true,
-        }
-      );
+      if (preview === undefined) {
+        const panel = vscode.window.createWebviewPanel(
+          "previewModel",
+          "Preview Model",
+          {
+            viewColumn: vscode.ViewColumn.Two,
+            preserveFocus: true,
+          },
+          {
+            enableScripts: true,
+          },
+        );
+
+        preview = new Preview(context, panel);
+        await preview.setup();
+      } else {
+        preview.panel.reveal(vscode.ViewColumn.Two, true);
+      }
 
       const uri = vscode.window.visibleTextEditors[0].document.uri!;
 
@@ -31,11 +42,8 @@ export async function activate(context: vscode.ExtensionContext) {
         uri: uri.toString(),
       });
 
-      const preview = new Preview(context, panel);
-      await preview.setup();
-
       await preview.render(res.model);
-    })
+    }),
   );
 
   const exec: Executable = {
@@ -64,7 +72,7 @@ export async function activate(context: vscode.ExtensionContext) {
     "MC LSP",
 
     serverOptions,
-    clientOptions
+    clientOptions,
   );
 
   await client.start();
