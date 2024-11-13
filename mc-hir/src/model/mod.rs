@@ -86,7 +86,6 @@ pub struct Faces {
 pub struct Face {
   pub uv:      [F64Eq; 4],
   pub texture: NodeId,
-  pub cull:    bool,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]

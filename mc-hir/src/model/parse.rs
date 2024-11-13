@@ -142,7 +142,6 @@ impl Parser<'_> {
     let mut face = Face {
       uv:      [0.0.into(), 0.0.into(), 16.0.into(), 16.0.into()],
       texture: NodeId::from_raw(RawIdx::from_u32(0)),
-      cull:    false,
     };
 
     let obj = self.parse_object(f)?;
@@ -170,7 +169,7 @@ impl Parser<'_> {
 
           face.texture = node;
         }
-        "cull" => face.cull = value.as_bool().unwrap_or(false),
+        "cullface" => {}
         "tintindex" => {
           // TODO: Store this, and then tint the thing green.
           self.int(&value);
