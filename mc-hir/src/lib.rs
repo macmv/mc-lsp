@@ -64,7 +64,7 @@ fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
     })
     .unwrap();
 
-  let nodes = token.parent_ancestors().filter_map(|node| match node.kind() {
+  let node = token.parent_ancestors().find_map(|node| match node.kind() {
     k if ast::Value::can_cast(k) => {
       let ptr = AstPtr::new(&ast::Value::cast(node).unwrap());
       source_map.ast_values.get(&ptr)
@@ -74,59 +74,51 @@ fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
       source_map.ast_elements.get(&ptr)
     }
     _ => None,
-  });
+  })?;
 
-  for node in nodes {
-    match model.nodes[*node] {
-      model::Node::Parent(ref p) => {
-        let file = db.lookup_model(p.path.clone());
+  match model.nodes[*node] {
+    model::Node::Parent(ref p) => {
+      let file = db.lookup_model(p.path.clone())?;
 
-        return file.map(|f| FileRange { file: f, range: None });
-      }
-
-      model::Node::Texture(ref t) => {
-        let name = match t {
-          model::Texture::Reference(t) => t,
-        };
-        let node = model.texture_defs.iter().find_map(|id| {
-          let model::Node::TextureDef(ref def) = model.nodes[*id] else { unreachable!() };
-
-          if def.name == *name {
-            Some(id)
-          } else {
-            None
-          }
-        });
-
-        if let Some(node) = node {
-          let element = source_map.texture_defs[&node].tree(&ast);
-
-          return Some(FileRange { file: pos.file, range: Some(element.syntax().text_range()) });
-        }
-      }
-      model::Node::TextureDef(ref t) => {
-        if t.value.starts_with("#") {
-          continue;
-        }
-
-        let mut path: Path = t.value.parse().unwrap();
-
-        path.segments.insert(0, "textures".into());
-        *path.segments.last_mut().unwrap() += ".png";
-
-        let workspace = db.workspace();
-        let file = workspace.namespaces.iter().find_map(|n| {
-          n.files.iter().find_map(|&(id, ref p)| if &path == p { Some(id) } else { None })
-        });
-
-        if let Some(file) = file {
-          return Some(FileRange { file, range: None });
-        }
-      }
-
-      _ => {}
+      Some(FileRange { file, range: None })
     }
-  }
 
-  None
+    model::Node::Texture(ref t) => {
+      let name = match t {
+        model::Texture::Reference(t) => t,
+      };
+      let node = model.texture_defs.iter().find_map(|id| {
+        let model::Node::TextureDef(ref def) = model.nodes[*id] else { unreachable!() };
+
+        if def.name == *name {
+          Some(id)
+        } else {
+          None
+        }
+      })?;
+
+      let element = source_map.texture_defs[&node].tree(&ast);
+
+      Some(FileRange { file: pos.file, range: Some(element.syntax().text_range()) })
+    }
+    model::Node::TextureDef(ref t) => {
+      if t.value.starts_with("#") {
+        return None;
+      }
+
+      let mut path: Path = t.value.parse().unwrap();
+
+      path.segments.insert(0, "textures".into());
+      *path.segments.last_mut().unwrap() += ".png";
+
+      let workspace = db.workspace();
+      let file = workspace.namespaces.iter().find_map(|n| {
+        n.files.iter().find_map(|&(id, ref p)| if &path == p { Some(id) } else { None })
+      })?;
+
+      Some(FileRange { file, range: None })
+    }
+
+    _ => None,
+  }
 }
