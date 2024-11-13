@@ -94,3 +94,27 @@ fn objects() {
     "#],
   );
 }
+
+#[test]
+fn missing_quote_in_string() {
+  check(
+    r#"{ "p": b",  "t": 33  }"#,
+    expect![@r#"
+      JSON
+        OBJECT
+          OPEN_CURLY '{'
+          WHITESPACE ' '
+          ELEMENT
+            KEY
+              STRING '"p"'
+            COLON ':'
+            error: invalid character
+            error: expected value
+            WHITESPACE ' '
+            STRING 'b",  '
+            error: invalid character
+            error: expected comma or end of object
+          EOF '"t": '
+    "#],
+  );
+}

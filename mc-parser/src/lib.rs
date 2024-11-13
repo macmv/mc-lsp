@@ -115,7 +115,9 @@ impl Parser<'_> {
 
   fn bump_inner(&mut self) -> SyntaxKind {
     self.eat_trivia();
-    self.events.push(Event::Token { kind: self.current, len: self.lexer.slice().len() });
+    if self.current != SyntaxKind::__LAST {
+      self.events.push(Event::Token { kind: self.current, len: self.lexer.slice().len() });
+    }
 
     loop {
       match self.lexer.next() {
@@ -131,7 +133,7 @@ impl Parser<'_> {
         }
         Err(e) => {
           self.error(e.to_string());
-          break self.current;
+          break SyntaxKind::__LAST;
         }
       }
     }
