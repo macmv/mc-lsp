@@ -103,9 +103,9 @@ impl Eq for F64Eq {}
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Pos {
-  pub x: i64,
-  pub y: i64,
-  pub z: i64,
+  pub x: F64Eq,
+  pub y: F64Eq,
+  pub z: F64Eq,
 }
 
 pub fn parse_model(

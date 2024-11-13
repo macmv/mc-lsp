@@ -94,12 +94,12 @@ impl Parser<'_> {
     match p {
       ast::Value::Array(ref elems) if elems.values().count() == 3 => {
         for (i, elem) in elems.values().enumerate().take(3) {
-          let Some(n) = self.int(&elem) else { continue };
+          let Some(n) = self.float(&elem) else { continue };
 
           match i {
-            0 => pos.x = n,
-            1 => pos.y = n,
-            2 => pos.z = n,
+            0 => pos.x = n.into(),
+            1 => pos.y = n.into(),
+            2 => pos.z = n.into(),
             _ => {}
           }
         }
