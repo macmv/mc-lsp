@@ -2,7 +2,10 @@ use std::{marker::PhantomData, path::PathBuf, sync::Arc};
 
 use mc_syntax::Parse;
 
+mod path;
+
 pub use line_index::{TextRange, TextSize};
+pub use path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FileLocation {

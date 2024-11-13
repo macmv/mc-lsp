@@ -7,10 +7,10 @@ mod parse;
 mod validate;
 
 use la_arena::{Arena, Idx};
-use mc_source::FileId;
+use mc_source::{FileId, Path};
 use mc_syntax::{ast, AstPtr};
 
-use crate::{diagnostic::Diagnostics, HirDatabase, Path};
+use crate::{diagnostic::Diagnostics, HirDatabase};
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Model {
