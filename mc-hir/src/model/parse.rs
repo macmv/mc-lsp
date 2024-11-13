@@ -171,6 +171,10 @@ impl Parser<'_> {
           face.texture = node;
         }
         "cull" => face.cull = value.as_bool().unwrap_or(false),
+        "tintindex" => {
+          // TODO: Store this, and then tint the thing green.
+          self.int(&value);
+        }
         _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
     }
