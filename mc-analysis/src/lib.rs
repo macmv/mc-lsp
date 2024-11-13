@@ -1,5 +1,6 @@
 pub mod highlight;
 
+mod completion;
 mod database;
 
 #[allow(unused_imports)]
@@ -8,6 +9,7 @@ extern crate log;
 
 use std::{collections::HashMap, panic::UnwindSafe, sync::Arc};
 
+use completion::Completion;
 use database::{LineIndexDatabase, RootDatabase};
 use highlight::Highlight;
 use line_index::LineIndex;
@@ -66,7 +68,9 @@ impl ParallelDatabase for RootDatabase {
 }
 
 impl Analysis {
-  pub fn completions(&self, _: FileLocation) -> Cancellable<Vec<()>> { self.with_db(|_| vec![]) }
+  pub fn completions(&self, pos: FileLocation) -> Cancellable<Vec<Completion>> {
+    self.with_db(|db| completion::completions(db, pos))
+  }
   pub fn diagnostics(&self, file: FileId) -> Cancellable<Arc<Diagnostics>> {
     self.with_db(|db| db.validate_model(file))
   }

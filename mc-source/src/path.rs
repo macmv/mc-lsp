@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 
 /// A namespaced resource path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -29,6 +29,16 @@ impl FromStr for Path {
         let segments = first.split('/').map(|s| s.to_string()).collect();
         Ok(Path { namespace, segments })
       }
+    }
+  }
+}
+
+impl fmt::Display for Path {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    if self.namespace == "minecraft" {
+      write!(f, "{}", self.segments.join("/"))
+    } else {
+      write!(f, "{}:{}", self.namespace, self.segments.join("/"))
     }
   }
 }
