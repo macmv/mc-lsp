@@ -26,17 +26,20 @@ pub fn parse(
 impl Parser<'_> {
   fn parse_root(&mut self, json: &ast::Json) {
     let Some(root) = json.value() else { return };
-    self.parse_object(root, |p, _, key_syntax, key, value| match key {
-      "parent" => {
-        if let Some(path) = p.parse_path(value.clone()) {
-          p.alloc(value, Parent { path: path.clone() });
-          p.model.parent = Some(path);
+    let Some(obj) = self.parse_object(root) else { return };
+    for (key, value) in obj.iter() {
+      match key.parse_text().as_str() {
+        "parent" => {
+          if let Some(path) = self.parse_path(value.clone()) {
+            self.alloc(value, Parent { path: path.clone() });
+            self.model.parent = Some(path);
+          }
         }
+        "textures" => self.parse_textures(value),
+        "elements" => self.parse_elements(value),
+        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
-      "textures" => p.parse_textures(value),
-      "elements" => p.parse_elements(value),
-      _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
-    });
+    }
   }
 
   fn parse_path(&mut self, p: ast::Value) -> Option<ModelPath> {
@@ -48,11 +51,14 @@ impl Parser<'_> {
   }
 
   fn parse_textures(&mut self, textures: ast::Value) {
-    self.parse_object(textures, |p, elem, _, key, value| {
-      let Some(texture) = value.as_str() else { return };
+    let Some(obj) = self.parse_object(textures) else { return };
+    for element in obj.elements() {
+      let Some(key) = element.key().map(|k| k.parse_text()) else { continue };
+      let Some(value) = element.value() else { continue };
+      let Some(texture) = self.str(&value) else { continue };
 
-      p.alloc(elem, TextureDef { name: key.to_string(), value: texture.to_string() });
-    });
+      self.alloc(element, TextureDef { name: key, value: texture.to_string() });
+    }
   }
 
   fn parse_elements(&mut self, elements: ast::Value) {
@@ -66,15 +72,18 @@ impl Parser<'_> {
   fn parse_element(&mut self, e: ast::Value) -> Option<NodeId> {
     let mut element = Element::default();
 
-    let obj = self.parse_object(e, |p, _, key_syntax, key, value| match key {
-      "from" => element.from = p.parse_pos(value),
-      "to" => element.to = p.parse_pos(value),
-      "faces" => element.faces = p.parse_faces(value),
-      "rotation" => {}
-      _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
-    });
+    let obj = self.parse_object(e)?;
+    for (key, value) in obj.iter() {
+      match key.parse_text().as_str() {
+        "from" => element.from = self.parse_pos(value),
+        "to" => element.to = self.parse_pos(value),
+        "faces" => element.faces = self.parse_faces(value),
+        "rotation" => {}
+        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+      }
+    }
 
-    obj.map(|o| self.alloc(o, element))
+    Some(self.alloc(obj, element))
   }
 
   fn parse_pos(&mut self, p: ast::Value) -> Pos {
@@ -112,19 +121,20 @@ impl Parser<'_> {
   fn parse_faces(&mut self, f: ast::Value) -> Faces {
     let mut faces = Faces::default();
 
-    self.parse_object(f, |p, _, key_syntax, key, value| {
-      let Some(face) = p.parse_face(value) else { return };
+    let Some(obj) = self.parse_object(f) else { return faces };
+    for (key, value) in obj.iter() {
+      let Some(face) = self.parse_face(value) else { continue };
 
-      match key {
+      match key.parse_text().as_str() {
         "north" => faces.north = Some(face),
         "east" => faces.east = Some(face),
         "south" => faces.south = Some(face),
         "west" => faces.west = Some(face),
         "up" => faces.up = Some(face),
         "down" => faces.down = Some(face),
-        _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
+        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
-    });
+    }
 
     faces
   }
@@ -133,40 +143,40 @@ impl Parser<'_> {
     let mut face =
       Face { uv: [0; 4], texture: NodeId::from_raw(RawIdx::from_u32(0)), cull: false };
 
-    let obj = self.parse_object(f, |p, _, key_syntax, key, value| match key {
-      "uv" => {
-        if let Some(arr) = p.arr(value) {
-          for (i, item) in arr.values().enumerate() {
-            face.uv[i] = item.as_i64().unwrap_or(0);
+    let obj = self.parse_object(f)?;
+
+    for (key, value) in obj.iter() {
+      match key.parse_text().as_str() {
+        "uv" => {
+          if let Some(arr) = self.arr(value) {
+            for (i, item) in arr.values().enumerate() {
+              face.uv[i] = item.as_i64().unwrap_or(0);
+            }
           }
         }
-      }
-      "rotation" => {
-        if let Some(n) = p.int(&value) {
-          if n % 45 != 0 {
-            p.diagnostics.error(value.syntax(), "rotation must be a multiple of 45");
+        "rotation" => {
+          if let Some(n) = self.int(&value) {
+            if n % 45 != 0 {
+              self.diagnostics.error(value.syntax(), "rotation must be a multiple of 45");
+            }
           }
         }
-      }
-      "texture" => {
-        let Some(texture) = value.as_str() else { return };
-        let Some(name) = texture.strip_prefix("#") else { return };
-        let node = p.alloc(value, Texture::Reference(name.to_string()));
+        "texture" => {
+          let Some(texture) = value.as_str() else { continue };
+          let Some(name) = texture.strip_prefix("#") else { continue };
+          let node = self.alloc(value, Texture::Reference(name.to_string()));
 
-        face.texture = node;
+          face.texture = node;
+        }
+        "cull" => face.cull = value.as_bool().unwrap_or(false),
+        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
-      "cull" => face.cull = value.as_bool().unwrap_or(false),
-      _ => p.diagnostics.warn(key_syntax.syntax(), format!("unknown key `{key}`")),
-    });
+    }
 
-    obj.map(|o| self.alloc(o, face))
+    Some(self.alloc(obj, face))
   }
 
-  fn parse_object(
-    &mut self,
-    object: ast::Value,
-    mut f: impl FnMut(&mut Parser, ast::Element, ast::Key, &str, ast::Value),
-  ) -> Option<ast::Object> {
+  fn parse_object(&mut self, object: ast::Value) -> Option<ast::Object> {
     match object {
       ast::Value::Object(obj) => {
         let mut keys = HashSet::new();
@@ -176,11 +186,7 @@ impl Parser<'_> {
           let key_str = key.parse_text();
           if !keys.insert(key_str.clone()) {
             self.diagnostics.error(key.syntax(), "duplicate key");
-            continue;
           }
-          let Some(value) = elem.value() else { continue };
-
-          f(self, elem, key, &key_str, value);
         }
 
         Some(obj)
@@ -206,6 +212,15 @@ impl Parser<'_> {
       Some(n) => Some(n),
       None => {
         self.diagnostics.error(p.syntax(), "expected number");
+        None
+      }
+    }
+  }
+  fn str(&mut self, p: &ast::Value) -> Option<String> {
+    match p.as_str() {
+      Some(s) => Some(s),
+      None => {
+        self.diagnostics.error(p.syntax(), "expected string");
         None
       }
     }

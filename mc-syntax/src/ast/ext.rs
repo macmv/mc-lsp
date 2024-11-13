@@ -1,5 +1,7 @@
 use crate::ast;
 
+use super::AstNode;
+
 impl ast::Value {
   pub fn as_str(&self) -> Option<String> {
     match self {
@@ -35,6 +37,17 @@ impl ast::Key {
 }
 impl ast::StringValue {
   pub fn parse_text(&self) -> String { parse_text(&self.syntax.text().to_string()) }
+}
+
+impl ast::Object {
+  pub fn iter(&self) -> impl Iterator<Item = (ast::Key, ast::Value)> {
+    self.syntax.children().filter_map(ast::Element::cast).filter_map(|e| {
+      let key = e.key()?;
+      let value = e.value()?;
+
+      Some((key, value))
+    })
+  }
 }
 
 fn parse_text(text: &str) -> String {
