@@ -80,20 +80,25 @@ impl Validator<'_> {
   }
 
   fn validate_texture(&mut self, id: NodeId, texture: &Texture) {
-    match texture {
-      Texture::Reference(name) => {
-        if !self.model.texture_defs.iter().any(|id| {
-          let texture_def = match self.model.nodes[*id] {
-            Node::TextureDef(ref texture_def) => texture_def,
-            _ => unreachable!(),
-          };
+    // FIXME: We only want to run this check on the leaf models, that are used by
+    // blockstates directly (as texture defs may exist in child models, which
+    // are then picked up by the parent model).
+    if false {
+      match texture {
+        Texture::Reference(name) => {
+          if !self.model.texture_defs.iter().any(|id| {
+            let texture_def = match self.model.nodes[*id] {
+              Node::TextureDef(ref texture_def) => texture_def,
+              _ => unreachable!(),
+            };
 
-          texture_def.name == *name
-        }) {
-          self.diagnostics.error(
-            self.source_map.textures[&id].to_node(&self.json),
-            format!("texture `{}` not found", name),
-          );
+            texture_def.name == *name
+          }) {
+            self.diagnostics.error(
+              self.source_map.textures[&id].to_node(&self.json),
+              format!("texture `{}` not found", name),
+            );
+          }
         }
       }
     }
