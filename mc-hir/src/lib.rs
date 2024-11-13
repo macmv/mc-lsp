@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use diagnostic::Diagnostics;
-use mc_source::{FileId, SourceDatabase};
+use mc_source::{FileId, FileLocation, FileRange, Path, SourceDatabase};
+use mc_syntax::{
+  ast::{self, AstNode},
+  AstPtr, T,
+};
 use model::{Model, ModelPath};
 
 pub mod diagnostic;
@@ -22,6 +26,8 @@ pub trait HirDatabase: SourceDatabase {
   fn parse_model(&self, file_id: FileId) -> Arc<Model>;
 
   fn lookup_model(&self, path: ModelPath) -> Option<FileId>;
+
+  fn def_at_index(&self, pos: FileLocation) -> Option<FileRange>;
 }
 
 fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Model> {
@@ -38,4 +44,95 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
   *search_path.segments.last_mut().unwrap() += ".json";
 
   namespace.files.iter().find_map(|&(id, ref f)| if *f == search_path { Some(id) } else { None })
+}
+
+fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
+  let ast = db.parse_json(pos.file);
+  let (model, source_map, _) = db.parse_model_with_source_map(pos.file);
+
+  let token = ast
+    .syntax_node()
+    .token_at_offset(pos.index)
+    .max_by_key(|token| match token.kind() {
+      T![string] => 10,
+      T![number] => 9,
+
+      _ => 1,
+    })
+    .unwrap();
+
+  let nodes = token.parent_ancestors().filter_map(|node| match node.kind() {
+    k if ast::Value::can_cast(k) => {
+      let ptr = AstPtr::new(&ast::Value::cast(node).unwrap());
+      source_map.ast_values.get(&ptr)
+    }
+    k if ast::Element::can_cast(k) => {
+      let ptr = AstPtr::new(&ast::Element::cast(node).unwrap());
+      source_map.ast_elements.get(&ptr)
+    }
+    _ => None,
+  });
+
+  for node in nodes {
+    match model.nodes[*node] {
+      model::Node::Parent(ref p) => {
+        let file = db.lookup_model(p.path.clone());
+
+        return file.map(|f| FileRange { file: f, range: None });
+      }
+
+      model::Node::Texture(ref t) => {
+        let name = match t {
+          model::Texture::Reference(t) => t,
+        };
+        let node = model.texture_defs.iter().find_map(|id| {
+          let model::Node::TextureDef(ref def) = model.nodes[*id] else { unreachable!() };
+
+          if def.name == *name {
+            Some(id)
+          } else {
+            None
+          }
+        });
+
+        if let Some(node) = node {
+          let element = source_map.texture_defs[&node].tree(&ast);
+
+          return Some(FileRange { file: pos.file, range: Some(element.syntax().text_range()) });
+        }
+      }
+      model::Node::TextureDef(ref t) => {
+        if t.value.starts_with("#") {
+          continue;
+        }
+
+        let first = t.value.split(":").next();
+        let second = t.value.split(":").nth(1);
+
+        let (namespace, value) = match (first, second) {
+          (Some(namespace), Some(value)) => (namespace, value),
+          (Some(name), None) => ("minecraft", name),
+          _ => continue,
+        };
+
+        // FIXME: There's like 8 different ways this is wrong. At the very least, we
+        // should derive the `assets` path from the path of the current
+        // model file.
+        let path: Path = format!("{namespace}:textures/{value}.png").parse().unwrap();
+
+        let workspace = db.workspace();
+        let file = workspace.namespaces.iter().find_map(|n| {
+          n.files.iter().find_map(|&(id, ref p)| if &path == p { Some(id) } else { None })
+        });
+
+        if let Some(file) = file {
+          return Some(FileRange { file, range: None });
+        }
+      }
+
+      _ => {}
+    }
+  }
+
+  None
 }
