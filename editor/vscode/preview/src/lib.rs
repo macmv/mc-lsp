@@ -6,7 +6,6 @@ use nalgebra::{point, vector, Matrix4, UnitQuaternion, Vector3};
 use wasm_bindgen::prelude::*;
 
 mod event;
-mod json;
 mod model;
 mod render;
 
@@ -43,8 +42,7 @@ fn start() -> Result<(), JsValue> {
 
         let context = Context::new().unwrap();
 
-        let textures = model.textures.clone();
-        let texture_names = textures.values().cloned().collect();
+        let texture_names = model.textures().map(|s| s.to_owned()).collect();
 
         let current = current.clone();
         context.clone().load_images(&texture_names, move |textures| {

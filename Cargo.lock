@@ -728,10 +728,18 @@ dependencies = [
  "lsp-types",
  "mc-analysis",
  "mc-gradle",
+ "mc-message",
  "mc-source",
  "parking_lot 0.12.3",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "mc-message"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -755,6 +763,7 @@ dependencies = [
  "console_log",
  "js-sys",
  "log",
+ "mc-message",
  "nalgebra",
  "serde",
  "serde-wasm-bindgen",

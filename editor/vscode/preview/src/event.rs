@@ -1,4 +1,3 @@
-use crate::json;
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
@@ -32,7 +31,7 @@ extern "C" {
 
 #[derive(Deserialize, Debug)]
 pub enum Message {
-  RenderModel { model: json::Model },
+  RenderModel { model: mc_message::Model },
 }
 
 pub fn listen(mut f: impl FnMut(Message) + 'static) {

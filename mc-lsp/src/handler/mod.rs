@@ -19,5 +19,5 @@ pub struct CanonicalModelParams {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CanonicalModelResponse {
-  pub model: serde_json::Value,
+  pub model: mc_message::Model,
 }

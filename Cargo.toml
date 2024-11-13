@@ -9,6 +9,7 @@ members = [
   "mc-hir",
   "mc-analysis",
   "mc-gradle",
+  "mc-message",
   "mc-lsp",
 
   "editor/vscode/preview",
@@ -23,3 +24,4 @@ mc-source = { path = "mc-source" }
 mc-hir = { path = "mc-hir" }
 mc-analysis = { path = "mc-analysis" }
 mc-gradle = { path = "mc-gradle" }
+mc-message = { path = "mc-message" }

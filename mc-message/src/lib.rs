@@ -1,16 +1,23 @@
+use std::fmt;
+
 use serde::{
   de::{self, Visitor},
-  Deserialize,
+  ser::SerializeSeq,
+  Deserialize, Serialize,
 };
-use std::{collections::HashMap, fmt};
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Model {
-  pub textures: HashMap<String, String>,
   pub elements: Vec<Element>,
 }
 
-#[derive(Deserialize, Debug)]
+impl Model {
+  pub fn textures(&self) -> impl Iterator<Item = &str> {
+    self.elements.iter().flat_map(|e| e.faces.textures())
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Element {
   pub from:     Pos,
   pub to:       Pos,
@@ -18,7 +25,7 @@ pub struct Element {
   pub rotation: Option<Rotation>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Faces {
   pub north: Option<Face>,
   pub south: Option<Face>,
@@ -28,24 +35,38 @@ pub struct Faces {
   pub down:  Option<Face>,
 }
 
-#[derive(Deserialize, Debug)]
+impl Faces {
+  pub fn textures(&self) -> impl Iterator<Item = &str> {
+    self
+      .north
+      .iter()
+      .chain(self.south.iter())
+      .chain(self.east.iter())
+      .chain(self.west.iter())
+      .chain(self.up.iter())
+      .chain(self.down.iter())
+      .map(|f| f.texture.as_str())
+  }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Face {
   pub uv:      [f32; 4],
   pub texture: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Rotation {
   pub origin:  Pos,
   pub axis:    Axis,
-  pub angle:   f32,
+  pub angle:   f64,
   #[serde(default = "make_false")]
   pub rescale: bool,
 }
 
 fn make_false() -> bool { false }
 
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum Axis {
   #[serde(rename = "x")]
   X,
@@ -55,11 +76,24 @@ pub enum Axis {
   Z,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pos {
-  pub x: f32,
-  pub y: f32,
-  pub z: f32,
+  pub x: f64,
+  pub y: f64,
+  pub z: f64,
+}
+
+impl Serialize for Pos {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut seq = serializer.serialize_seq(Some(3))?;
+    seq.serialize_element(&self.x)?;
+    seq.serialize_element(&self.y)?;
+    seq.serialize_element(&self.z)?;
+    seq.end()
+  }
 }
 
 impl<'de> Deserialize<'de> for Pos {
@@ -80,9 +114,9 @@ impl<'de> Deserialize<'de> for Pos {
       where
         A: de::SeqAccess<'de>,
       {
-        let x = seq.next_element::<f32>()?.ok_or(de::Error::missing_field("x"))?;
-        let y = seq.next_element::<f32>()?.ok_or(de::Error::missing_field("y"))?;
-        let z = seq.next_element::<f32>()?.ok_or(de::Error::missing_field("z"))?;
+        let x = seq.next_element::<f64>()?.ok_or(de::Error::missing_field("x"))?;
+        let y = seq.next_element::<f64>()?.ok_or(de::Error::missing_field("y"))?;
+        let z = seq.next_element::<f64>()?.ok_or(de::Error::missing_field("z"))?;
 
         Ok(Pos { x, y, z })
       }
