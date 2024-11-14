@@ -50,7 +50,7 @@ fn start() -> Result<(), JsValue> {
         let preview = preview.clone();
         context.clone().load_images(&texture_names, move |textures| {
           let width = textures.values().map(|t| t.width()).sum();
-          let height = textures.values().map(|t| t.height()).max().unwrap();
+          let height = textures.values().map(|t| t.height()).max().unwrap_or_default();
           context.setup_image(width, height);
 
           let mut uv_map = HashMap::new();

@@ -187,6 +187,11 @@ impl Context {
     paths: &HashSet<String>,
     on_load: impl FnOnce(&HashMap<String, Image>) + 'static,
   ) {
+    if paths.is_empty() {
+      on_load(&HashMap::new());
+      return;
+    }
+
     let mut images = HashMap::new();
     let done = Rc::new(RefCell::new(HashMap::new()));
     let total = paths.len();
