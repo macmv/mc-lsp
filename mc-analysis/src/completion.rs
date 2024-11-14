@@ -7,9 +7,12 @@ pub struct Completion {
   pub label:       String,
   pub kind:        CompletionKind,
   pub description: String,
+
+  pub retrigger: bool,
+  pub insert:    String,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompletionKind {
   Namespace,
   Model,
@@ -73,6 +76,8 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
             label:       format!("#{}", def.name.clone()),
             kind:        CompletionKind::Texture,
             description: def.name.clone(),
+            retrigger:   false,
+            insert:      def.name.clone(),
           });
         }
       }
@@ -138,6 +143,8 @@ impl<'a> Completer<'a> {
               label:       path.namespace.clone(),
               kind:        CompletionKind::Namespace,
               description: path.namespace.clone(),
+              retrigger:   true,
+              insert:      format!("{}:", path.namespace.clone()),
             });
           }
         }
@@ -153,6 +160,8 @@ impl<'a> Completer<'a> {
             label: to_complete.join("/"),
             kind,
             description: path.to_extended_string(),
+            retrigger: false,
+            insert: to_complete.join("/"),
           });
         }
       }
@@ -165,6 +174,8 @@ impl<'a> Completer<'a> {
             label: to_complete.join("/"),
             kind,
             description: path.to_extended_string(),
+            retrigger: false,
+            insert: to_complete.join("/"),
           });
         }
       }
