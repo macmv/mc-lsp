@@ -24,7 +24,7 @@ fn discover_assets_in(workspace: &mut Workspace, files: &mut Files, path: &path:
   for entry in std::fs::read_dir(path).unwrap() {
     let name = entry.unwrap().file_name();
 
-    let rel_path = mc_source::Path::new(name.to_string_lossy().to_string());
+    let rel_path = mc_source::Path::new_namespace(name.to_string_lossy().to_string());
 
     let mut sources = vec![];
     let root_path: PathBuf = path.join(&name).canonicalize().unwrap();
@@ -49,7 +49,7 @@ fn discover_sources(
     if path.is_dir() {
       discover_sources(path.as_path(), &rel_path, sources, files)?;
     } else if let Some(r) = files.relative_path(&path) {
-      let mut relative = Path::new(rel_path.namespace.clone());
+      let mut relative = Path::new_namespace(rel_path.namespace.clone());
       for segment in r.iter() {
         relative.segments.push(segment.to_string_lossy().to_string());
       }

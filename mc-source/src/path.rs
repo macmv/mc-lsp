@@ -8,7 +8,8 @@ pub struct Path {
 }
 
 impl Path {
-  pub fn new(namespace: String) -> Self { Path { namespace, segments: vec![] } }
+  pub fn new() -> Self { Path { namespace: "minecraft".into(), segments: vec![] } }
+  pub fn new_namespace(namespace: String) -> Self { Path { namespace, segments: vec![] } }
 }
 
 impl FromStr for Path {

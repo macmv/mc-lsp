@@ -22,10 +22,10 @@ struct Completer<'a> {
 }
 
 enum PrefixPath {
-  // The cursor is in the namespace portion of the path.
-  InNamespace,
+  // The cursor is in the last segment of the given path, and there is no namespace specified.
+  NoNamespace(Vec<String>),
   // The cursor is in the last segment of the given path.
-  InPath(Path),
+  Namespaced(Path),
 }
 
 pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
@@ -109,10 +109,9 @@ impl<'a> Completer<'a> {
       let lhs = &node.text().to_string()[1..offset];
 
       if lhs.contains(":") {
-        let path = lhs.to_string().parse().unwrap();
-        PrefixPath::InPath(path)
+        PrefixPath::Namespaced(lhs.to_string().parse().unwrap())
       } else {
-        PrefixPath::InNamespace
+        PrefixPath::NoNamespace(lhs.split('/').map(|s| s.to_string()).collect())
       }
     });
 
@@ -121,16 +120,32 @@ impl<'a> Completer<'a> {
 
   pub fn complete_path(&mut self, path: &Path) {
     match self.current_path {
-      Some(PrefixPath::InNamespace) => {
-        // This should be a small list, so performance is fine here.
-        if !self.completions.iter().any(|c| c.label == path.namespace) {
-          self.completions.push(Completion {
-            label:       path.namespace.clone(),
-            description: path.namespace.clone(),
-          });
+      Some(PrefixPath::NoNamespace(ref segments)) => {
+        // If there is a single element, then we are completing the namespace.
+        if segments.len() == 1 {
+          // This should be a small list, so performance is fine here.
+          if !self.completions.iter().any(|c| c.label == path.namespace) {
+            self.completions.push(Completion {
+              label:       path.namespace.clone(),
+              description: path.namespace.clone(),
+            });
+          }
+        } else {
+          // Otherwise, we are completing an element within the "minecraft"
+          // namespace.
+          let mut prefix = Path::new();
+          prefix.segments = segments.clone();
+          prefix.segments.pop();
+
+          if let Some(to_complete) = path.strip_prefix(&prefix) {
+            self.completions.push(Completion {
+              label:       to_complete.join("/"),
+              description: path.to_string(),
+            });
+          }
         }
       }
-      Some(PrefixPath::InPath(ref current)) => {
+      Some(PrefixPath::Namespaced(ref current)) => {
         let mut prefix = current.clone();
         prefix.segments.pop();
 
