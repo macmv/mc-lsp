@@ -4,7 +4,8 @@ use mc_syntax::ast::{self, AstNode};
 
 #[derive(Debug, Clone)]
 pub struct Completion {
-  pub label: String,
+  pub label:       String,
+  pub description: String,
 }
 
 struct Completer<'a> {
@@ -60,7 +61,10 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
         for &def in model.texture_defs.iter() {
           let model::Node::TextureDef(ref def) = model.nodes[def] else { unreachable!() };
 
-          completer.completions.push(Completion { label: format!("#{}", def.name.clone()) });
+          completer.completions.push(Completion {
+            label:       format!("#{}", def.name.clone()),
+            description: def.name.clone(),
+          });
         }
       }
     }
@@ -120,7 +124,10 @@ impl<'a> Completer<'a> {
       Some(PrefixPath::InNamespace) => {
         // This should be a small list, so performance is fine here.
         if !self.completions.iter().any(|c| c.label == path.namespace) {
-          self.completions.push(Completion { label: path.namespace.clone() });
+          self.completions.push(Completion {
+            label:       path.namespace.clone(),
+            description: path.namespace.clone(),
+          });
         }
       }
       Some(PrefixPath::InPath(ref current)) => {
@@ -128,7 +135,9 @@ impl<'a> Completer<'a> {
         prefix.segments.pop();
 
         if let Some(to_complete) = path.strip_prefix(&prefix) {
-          self.completions.push(Completion { label: to_complete.join("/") });
+          self
+            .completions
+            .push(Completion { label: to_complete.join("/"), description: path.to_string() });
         }
       }
       None => {}

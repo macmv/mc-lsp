@@ -50,18 +50,14 @@ pub fn handle_completion(
     Ok(Some(lsp_types::CompletionResponse::Array(
       completions
         .into_iter()
-        .map(|c| {
-          let (kind, detail) = (lsp_types::CompletionItemKind::CLASS, None);
-
-          lsp_types::CompletionItem {
-            label: c.label,
-            label_details: detail.map(|d| lsp_types::CompletionItemLabelDetails {
-              detail: Some(d),
-              ..Default::default()
-            }),
-            kind: Some(kind),
-            ..Default::default()
-          }
+        .map(|c| lsp_types::CompletionItem {
+          label: c.label,
+          label_details: Some(lsp_types::CompletionItemLabelDetails {
+            detail:      None,
+            description: Some(c.description),
+          }),
+          kind: Some(lsp_types::CompletionItemKind::CLASS),
+          ..Default::default()
         })
         .collect(),
     )))
