@@ -45,14 +45,15 @@ impl Faces {
       .chain(self.west.iter())
       .chain(self.up.iter())
       .chain(self.down.iter())
-      .map(|f| f.texture.as_str())
+      .filter_map(|f| f.texture.as_ref().map(|s| s.as_str()))
   }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Face {
   pub uv:      [f64; 4],
-  pub texture: String,
+  /// If there is no texture, an error texture should be rendered.
+  pub texture: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

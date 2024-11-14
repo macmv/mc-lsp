@@ -43,7 +43,9 @@ impl Builder<'_> {
   }
 
   fn render_face(&mut self, element: &mc_message::Element, face: &mc_message::Face, dir: Dir) {
-    let (u_min, v_min, u_width, v_height) = self.uv_map[face.texture.as_str()];
+    // TODO: Replace with an error texture.
+    let Some(ref tex) = face.texture else { return };
+    let (u_min, v_min, u_width, v_height) = self.uv_map[tex.as_str()];
 
     let u0 = (face.uv[0] / 16.0) * u_width + u_min;
     let v0 = (face.uv[1] / 16.0) * v_height + v_min;

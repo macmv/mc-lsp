@@ -134,10 +134,23 @@ impl Analysis {
 
         for element in model.elements.iter_mut() {
           for face in element.faces.iter_mut() {
-            if let Some(name) = face.texture.strip_prefix("#") {
-              if let Some(actual) = texture_map.get(name) {
-                face.texture = actual.clone();
+            if let Some(ref tex) = face.texture {
+              if let Some(name) = tex.strip_prefix("#") {
+                if let Some(actual) = texture_map.get(name) {
+                  face.texture = Some(actual.clone());
+                }
               }
+            }
+          }
+        }
+      }
+
+      // Remove any unlinked textures.
+      for element in model.elements.iter_mut() {
+        for face in element.faces.iter_mut() {
+          if let Some(ref tex) = face.texture {
+            if tex.starts_with("#") {
+              face.texture = None;
             }
           }
         }
@@ -207,7 +220,7 @@ impl FromHir<model::Face> for mc_message::Face {
     mc_message::Face {
       uv:      [hir.uv[0].into(), hir.uv[1].into(), hir.uv[2].into(), hir.uv[3].into()],
       texture: match model.nodes[hir.texture] {
-        model::Node::Texture(model::Texture::Reference(ref t)) => format!("#{t}"),
+        model::Node::Texture(model::Texture::Reference(ref t)) => Some(format!("#{t}")),
         _ => unreachable!(),
       },
     }
