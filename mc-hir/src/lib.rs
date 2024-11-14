@@ -30,6 +30,10 @@ pub trait HirDatabase: SourceDatabase {
 
   fn lookup_model(&self, path: ModelPath) -> Option<FileId>;
 
+  /// Returns the ancestry, starting with the root, and ending with the child.
+  #[salsa::invoke(model::ancestry)]
+  fn model_ancestry(&self, file_id: FileId) -> Vec<FileId>;
+
   fn def_at_index(&self, pos: FileLocation) -> Option<FileRange>;
   fn node_at_index(&self, pos: FileLocation) -> Option<model::NodeId>;
   fn def_at_node(&self, file: FileId, node: model::NodeId) -> Option<FileRange>;

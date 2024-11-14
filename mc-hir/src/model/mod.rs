@@ -132,3 +132,19 @@ pub fn validate_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Diagnostics>
 
   Arc::new(diagnostics)
 }
+
+pub fn ancestry(db: &dyn HirDatabase, file: FileId) -> Vec<FileId> {
+  let mut ancestry = if let Some(ref parent) = db.parse_model(file).parent {
+    if let Some(parent) = db.lookup_model(parent.clone()) {
+      db.model_ancestry(parent)
+    } else {
+      vec![]
+    }
+  } else {
+    vec![]
+  };
+
+  ancestry.push(file);
+
+  ancestry
+}
