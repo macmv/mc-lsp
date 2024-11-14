@@ -135,34 +135,31 @@ impl<'a> Completer<'a> {
   pub fn complete_path(&mut self, path: &Path, kind: CompletionKind) {
     match self.current_path {
       Some(PrefixPath::NoNamespace(ref segments)) => {
-        // If there is a single element, then we are completing the namespace.
         if segments.len() == 1 {
-          // This should be a small list, so performance is fine here.
-          if !self.completions.iter().any(|c| c.label == path.namespace) {
-            self.completions.push(Completion {
-              label:       path.namespace.clone(),
-              kind:        CompletionKind::Namespace,
-              description: path.namespace.clone(),
-              retrigger:   true,
-              insert:      format!("{}:", path.namespace.clone()),
-            });
-          }
-        }
-
-        // When there is no namespace, we are completing an element within the
-        // "minecraft" namespace.
-        let mut prefix = Path::new();
-        prefix.segments = segments.clone();
-        prefix.segments.pop();
-
-        if let Some(to_complete) = path.strip_prefix(&prefix) {
+          // If there is a single element, then just complete everything.
           self.completions.push(Completion {
-            label: to_complete.join("/"),
+            label: path.to_string(),
             kind,
             description: path.to_extended_string(),
             retrigger: false,
-            insert: to_complete.join("/"),
+            insert: path.to_string(),
           });
+        } else {
+          // When there are segments, we are completing the path within the
+          // "minecraft" namespace.
+          let mut prefix = Path::new();
+          prefix.segments = segments.clone();
+          prefix.segments.pop();
+
+          if let Some(to_complete) = path.strip_prefix(&prefix) {
+            self.completions.push(Completion {
+              label: to_complete.join("/"),
+              kind,
+              description: path.to_extended_string(),
+              retrigger: false,
+              insert: to_complete.join("/"),
+            });
+          }
         }
       }
       Some(PrefixPath::Namespaced(ref current)) => {
