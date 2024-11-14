@@ -36,7 +36,7 @@ pub struct Image {
 }
 
 impl Render {
-  pub fn new(context: Context, buffers: Buffers) -> Result<Self, JsValue> {
+  pub fn new(context: Context, buffers: Buffers) -> Result<Self, String> {
     let vert_shader = context.compile_shader(gl::VERTEX_SHADER, include_str!("vert.glsl"))?;
 
     let frag_shader = context.compile_shader(gl::FRAGMENT_SHADER, include_str!("frag.glsl"))?;

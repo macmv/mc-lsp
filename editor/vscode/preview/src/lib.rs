@@ -72,7 +72,10 @@ fn start() -> Result<(), JsValue> {
           }
 
           let buffers = model::render(&model, &uv_map);
-          let render = Render::new(context, buffers).unwrap();
+          let render = Render::new(context, buffers).unwrap_or_else(|e| {
+            error!("failed to create render: {e}");
+            panic!("failed to create render: {e}");
+          });
 
           let preview_2 = preview.clone();
           let handle_2 = render.setup_loop(move |render| {
