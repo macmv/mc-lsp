@@ -23,6 +23,18 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
       })
       .collect(),
 
+    model::Node::TextureDef(_) => db
+      .workspace()
+      .namespaces
+      .iter()
+      .flat_map(|n| {
+        n.files.iter().filter_map(|f| match f.path() {
+          Some(ResolvedPath::Texture(path)) => Some(Completion { label: path.path.to_string() }),
+          _ => None,
+        })
+      })
+      .collect(),
+
     _ => vec![],
   }
 }
