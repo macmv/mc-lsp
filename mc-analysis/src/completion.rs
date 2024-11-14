@@ -35,6 +35,21 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
       })
       .collect(),
 
+    model::Node::Texture(_) => {
+      let mut completions = vec![];
+
+      for file in db.model_ancestry(pos.file) {
+        let model = db.parse_model(file);
+        for &def in model.texture_defs.iter() {
+          let model::Node::TextureDef(ref def) = model.nodes[def] else { unreachable!() };
+
+          completions.push(Completion { label: format!("#{}", def.name.clone()) });
+        }
+      }
+
+      completions
+    }
+
     _ => vec![],
   }
 }
