@@ -1,6 +1,6 @@
+pub mod completion;
 pub mod highlight;
 
-mod completion;
 mod database;
 
 #[allow(unused_imports)]

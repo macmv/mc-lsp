@@ -2,7 +2,10 @@ use std::{error::Error, path::Path, sync::Arc};
 
 use line_index::LineIndex;
 use lsp_types::{SemanticTokenModifier, SemanticTokenType};
-use mc_analysis::highlight::{Highlight, HighlightKind};
+use mc_analysis::{
+  completion::CompletionKind,
+  highlight::{Highlight, HighlightKind},
+};
 use mc_source::{FileId, FileLocation, TextRange, TextSize};
 
 use crate::global::GlobalStateSnapshot;
@@ -56,7 +59,11 @@ pub fn handle_completion(
             detail:      None,
             description: Some(c.description),
           }),
-          kind: Some(lsp_types::CompletionItemKind::CLASS),
+          kind: Some(match c.kind {
+            CompletionKind::Model => lsp_types::CompletionItemKind::CLASS,
+            CompletionKind::Texture => lsp_types::CompletionItemKind::TEXT,
+            CompletionKind::Namespace => lsp_types::CompletionItemKind::MODULE,
+          }),
           ..Default::default()
         })
         .collect(),
