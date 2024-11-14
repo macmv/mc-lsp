@@ -140,7 +140,7 @@ impl<'a> Completer<'a> {
           if let Some(to_complete) = path.strip_prefix(&prefix) {
             self.completions.push(Completion {
               label:       to_complete.join("/"),
-              description: path.to_string(),
+              description: path.to_extended_string(),
             });
           }
         }
@@ -150,9 +150,10 @@ impl<'a> Completer<'a> {
         prefix.segments.pop();
 
         if let Some(to_complete) = path.strip_prefix(&prefix) {
-          self
-            .completions
-            .push(Completion { label: to_complete.join("/"), description: path.to_string() });
+          self.completions.push(Completion {
+            label:       to_complete.join("/"),
+            description: path.to_extended_string(),
+          });
         }
       }
       None => {}

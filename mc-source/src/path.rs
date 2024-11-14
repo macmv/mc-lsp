@@ -52,4 +52,9 @@ impl Path {
 
     self.segments.strip_prefix(prefix.segments.as_slice())
   }
+
+  /// Similar to `to_string`, but always includes the namespace.
+  pub fn to_extended_string(&self) -> String {
+    format!("{}:{}", self.namespace, self.segments.join("/"))
+  }
 }
