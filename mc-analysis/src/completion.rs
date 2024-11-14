@@ -1,5 +1,5 @@
 use mc_hir::{model, HirDatabase};
-use mc_source::FileLocation;
+use mc_source::{FileLocation, ResolvedPath};
 
 #[derive(Debug, Clone)]
 pub struct Completion {
@@ -16,18 +16,9 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
       .namespaces
       .iter()
       .flat_map(|n| {
-        n.files.iter().filter_map(|&(_, ref path)| {
-          if path.segments.get(0).is_some_and(|s| s == "models")
-            && path.segments.get(1).is_some_and(|s| s == "block")
-          {
-            let mut path = path.clone();
-            // FIXME: Needs reworking!!
-            path.segments.remove(0);
-            path.segments.last_mut().map(|s| *s = s.strip_suffix(".json").unwrap_or(s).into());
-            Some(Completion { label: path.to_string() })
-          } else {
-            None
-          }
+        n.files.iter().filter_map(|f| match f.path() {
+          Some(ResolvedPath::Model(path)) => Some(Completion { label: path.path.to_string() }),
+          _ => None,
         })
       })
       .collect(),

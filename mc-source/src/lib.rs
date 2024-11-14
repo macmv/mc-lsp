@@ -3,9 +3,11 @@ use std::{marker::PhantomData, sync::Arc};
 use mc_syntax::Parse;
 
 mod path;
+mod resolved;
 
 pub use line_index::{TextRange, TextSize};
 pub use path::Path;
+pub use resolved::{ModelPath, ResolvedPath, TexturePath};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FileLocation {
@@ -95,7 +97,17 @@ pub struct Namespace {
   pub name: String,
 
   /// Files and their relative paths.
-  pub files: Vec<(FileId, Path)>,
+  pub files: Vec<File>,
+}
+
+#[derive(Debug)]
+pub struct File {
+  pub id:   FileId,
+  pub path: Path,
+}
+
+impl File {
+  pub fn path(&self) -> Option<ResolvedPath> { ResolvedPath::parse(&self.path) }
 }
 
 fn parse<T: FileType>(db: &dyn SourceDatabase, file_id: FileId) -> Parse<T::Source> {

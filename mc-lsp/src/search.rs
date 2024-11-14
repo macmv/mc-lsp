@@ -2,7 +2,7 @@
 
 use std::{io, path, path::PathBuf};
 
-use mc_source::{FileId, Path, Workspace};
+use mc_source::{File, Path, Workspace};
 
 use crate::files::{FileContent, Files};
 
@@ -40,7 +40,7 @@ fn discover_assets_in(workspace: &mut Workspace, files: &mut Files, path: &path:
 fn discover_sources(
   path: &path::Path,
   rel_path: &Path,
-  sources: &mut Vec<(FileId, Path)>,
+  sources: &mut Vec<File>,
   files: &mut Files,
 ) -> io::Result<()> {
   for entry in std::fs::read_dir(path)? {
@@ -56,20 +56,20 @@ fn discover_sources(
 
       match files.get_absolute(&path) {
         Some(id) => {
-          sources.push((id, relative.into()));
+          sources.push(File { id, path: relative.into() });
         }
         None => match r.extension() {
           Some(ext) if ext == "json" => {
             let id = files.create(&path);
             let content = std::fs::read_to_string(&path)?;
             files.write(id, FileContent::Json(content));
-            sources.push((id, relative.into()));
+            sources.push(File { id, path: relative.into() });
           }
           Some(ext) if ext == "png" => {
             let id = files.create(&path);
             let content = std::fs::read(&path)?;
             files.write(id, FileContent::Png(content));
-            sources.push((id, relative.into()));
+            sources.push(File { id, path: relative.into() });
           }
           _ => {}
         },

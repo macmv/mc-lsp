@@ -143,9 +143,9 @@ impl GlobalState {
     {
       let files = self.files.read();
       for namespace in &workspace.namespaces {
-        for &(file, _) in &namespace.files {
-          if let FileContent::Json(text) = files.read(file) {
-            self.analysis_host.change(mc_analysis::Change { file, text });
+        for file in &namespace.files {
+          if let FileContent::Json(text) = files.read(file.id) {
+            self.analysis_host.change(mc_analysis::Change { file: file.id, text });
           }
         }
       }

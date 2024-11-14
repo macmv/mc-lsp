@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use diagnostic::Diagnostics;
-use mc_source::{FileId, FileLocation, FileRange, Path, SourceDatabase};
+use mc_source::{FileId, FileLocation, FileRange, ResolvedPath, SourceDatabase};
 use mc_syntax::{
   ast::{self, AstNode},
   AstPtr, T,
@@ -43,12 +43,15 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
   let workspace = db.workspace();
   let namespace = workspace.namespaces.iter().find(|n| n.name == path.path.namespace)?;
 
-  // FIXME: This needs a lot of redoing.
-  let mut search_path = path.path.clone();
-  search_path.segments.insert(0, "models".into());
-  *search_path.segments.last_mut().unwrap() += ".json";
+  let search_path = ResolvedPath::Model(mc_source::ModelPath::new(path.path));
 
-  namespace.files.iter().find_map(|&(id, ref f)| if *f == search_path { Some(id) } else { None })
+  namespace.files.iter().find_map(|f| {
+    if f.path().as_ref() == Some(&search_path) {
+      Some(f.id)
+    } else {
+      None
+    }
+  })
 }
 
 fn node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<model::NodeId> {
@@ -121,14 +124,18 @@ fn def_at_node(db: &dyn HirDatabase, file: FileId, node: model::NodeId) -> Optio
         return None;
       }
 
-      let mut path: Path = t.value.parse().unwrap();
-
-      path.segments.insert(0, "textures".into());
-      *path.segments.last_mut().unwrap() += ".png";
+      let search_path =
+        ResolvedPath::Texture(mc_source::TexturePath::new(t.value.parse().unwrap()));
 
       let workspace = db.workspace();
       let file = workspace.namespaces.iter().find_map(|n| {
-        n.files.iter().find_map(|&(id, ref p)| if &path == p { Some(id) } else { None })
+        n.files.iter().find_map(|f| {
+          if f.path().as_ref() == Some(&search_path) {
+            Some(f.id)
+          } else {
+            None
+          }
+        })
       })?;
 
       Some(FileRange { file, range: None })

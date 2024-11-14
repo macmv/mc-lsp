@@ -1,4 +1,5 @@
 use ast::Json;
+use mc_source::ResolvedPath;
 use mc_syntax::Parse;
 
 use crate::diagnostic::Diagnostics;
@@ -58,16 +59,19 @@ impl Validator<'_> {
     }
 
     if !texture.value.starts_with("#") {
-      let mut path: Path = texture.value.parse().unwrap();
-
-      // FIXME: Extract to its own type.
-      path.segments.insert(0, "textures".into());
-      *path.segments.last_mut().unwrap() += ".png";
+      let search_path =
+        ResolvedPath::Texture(mc_source::TexturePath::new(texture.value.parse().unwrap()));
 
       // FIXME: Extract to a function.
       let workspace = self.db.workspace();
       let file = workspace.namespaces.iter().find_map(|n| {
-        n.files.iter().find_map(|&(id, ref p)| if &path == p { Some(id) } else { None })
+        n.files.iter().find_map(|f| {
+          if f.path().as_ref() == Some(&search_path) {
+            Some(f.id)
+          } else {
+            None
+          }
+        })
       });
 
       if file.is_none() {
