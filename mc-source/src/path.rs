@@ -42,3 +42,13 @@ impl fmt::Display for Path {
     }
   }
 }
+
+impl Path {
+  pub fn strip_prefix(&self, prefix: &Path) -> Option<&[String]> {
+    if self.namespace != prefix.namespace {
+      return None;
+    }
+
+    self.segments.strip_prefix(prefix.segments.as_slice())
+  }
+}
