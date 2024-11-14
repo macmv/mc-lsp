@@ -13,7 +13,7 @@ export class Preview {
 
   async setup() {
     const renderSrc = this.panel.webview.asWebviewUri(
-      Uri.joinPath(this.context.extensionUri, "preview", "out", "index.js")
+      Uri.joinPath(this.context.extensionUri, "preview", "out", "index.js"),
     );
 
     this.panel.webview.html = getWebviewContent(renderSrc);
@@ -27,27 +27,34 @@ export class Preview {
   }
 
   async render(model: any) {
-    for (const [i, element] of model.elements.entries()) {
+    for (const element of model.elements) {
       for (const f of ["up", "down", "east", "west", "north", "south"]) {
-        if (element.faces[f] === undefined) {
+        const face = element.faces[f];
+        if (face == null) {
           continue;
         }
 
-        const face = element.faces[f];
         const texture = face.texture as any as string;
-
-        const namespace = texture.split(":")[0];
-        const rel_path = texture.split(":")[1];
-        if (rel_path === undefined) {
-          // Just... don't
-          delete element.faces[f];
+        if (texture == null) {
           continue;
+        }
+
+        const first = texture.split(":")[0];
+        const second = texture.split(":")[1];
+        let namespace: string;
+        let rel_path: string;
+        if (second == null) {
+          namespace = "minecraft";
+          rel_path = first;
+        } else {
+          namespace = first;
+          rel_path = second;
         }
 
         const path = this.panel.webview.asWebviewUri(
           Uri.parse(
-            `file://${vscode.workspace.rootPath}/src/main/resources/assets/${namespace}/textures/${rel_path}.png`
-          )
+            `file://${vscode.workspace.rootPath}/src/main/resources/assets/${namespace}/textures/${rel_path}.png`,
+          ),
         );
 
         face.texture = path.toString();
