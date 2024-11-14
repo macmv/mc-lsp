@@ -5,7 +5,15 @@ use mc_syntax::ast::{self, AstNode};
 #[derive(Debug, Clone)]
 pub struct Completion {
   pub label:       String,
+  pub kind:        CompletionKind,
   pub description: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum CompletionKind {
+  Namespace,
+  Model,
+  Texture,
 }
 
 struct Completer<'a> {
@@ -39,7 +47,7 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
       for n in db.workspace().namespaces.iter() {
         for f in n.files.iter() {
           if let Some(ResolvedPath::Model(path)) = f.path() {
-            completer.complete_path(&path.path);
+            completer.complete_path(&path.path, CompletionKind::Model);
           }
         }
       }
@@ -49,7 +57,7 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
       for n in db.workspace().namespaces.iter() {
         for f in n.files.iter() {
           if let Some(ResolvedPath::Texture(path)) = f.path() {
-            completer.complete_path(&path.path);
+            completer.complete_path(&path.path, CompletionKind::Texture);
           }
         }
       }
@@ -63,6 +71,7 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
 
           completer.completions.push(Completion {
             label:       format!("#{}", def.name.clone()),
+            kind:        CompletionKind::Texture,
             description: def.name.clone(),
           });
         }
@@ -118,7 +127,7 @@ impl<'a> Completer<'a> {
     Completer { db, pos, model, current_path, completions: Vec::new() }
   }
 
-  pub fn complete_path(&mut self, path: &Path) {
+  pub fn complete_path(&mut self, path: &Path, kind: CompletionKind) {
     match self.current_path {
       Some(PrefixPath::NoNamespace(ref segments)) => {
         // If there is a single element, then we are completing the namespace.
@@ -127,22 +136,24 @@ impl<'a> Completer<'a> {
           if !self.completions.iter().any(|c| c.label == path.namespace) {
             self.completions.push(Completion {
               label:       path.namespace.clone(),
+              kind:        CompletionKind::Namespace,
               description: path.namespace.clone(),
             });
           }
-        } else {
-          // Otherwise, we are completing an element within the "minecraft"
-          // namespace.
-          let mut prefix = Path::new();
-          prefix.segments = segments.clone();
-          prefix.segments.pop();
+        }
 
-          if let Some(to_complete) = path.strip_prefix(&prefix) {
-            self.completions.push(Completion {
-              label:       to_complete.join("/"),
-              description: path.to_extended_string(),
-            });
-          }
+        // When there is no namespace, we are completing an element within the
+        // "minecraft" namespace.
+        let mut prefix = Path::new();
+        prefix.segments = segments.clone();
+        prefix.segments.pop();
+
+        if let Some(to_complete) = path.strip_prefix(&prefix) {
+          self.completions.push(Completion {
+            label: to_complete.join("/"),
+            kind,
+            description: path.to_extended_string(),
+          });
         }
       }
       Some(PrefixPath::Namespaced(ref current)) => {
@@ -151,7 +162,8 @@ impl<'a> Completer<'a> {
 
         if let Some(to_complete) = path.strip_prefix(&prefix) {
           self.completions.push(Completion {
-            label:       to_complete.join("/"),
+            label: to_complete.join("/"),
+            kind,
             description: path.to_extended_string(),
           });
         }
