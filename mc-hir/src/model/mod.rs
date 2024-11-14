@@ -7,7 +7,7 @@ mod parse;
 mod validate;
 
 use la_arena::{Arena, Idx};
-use mc_source::{FileId, Path};
+use mc_source::{FileId, ModelPath};
 use mc_syntax::{ast, AstPtr};
 
 use crate::{diagnostic::Diagnostics, HirDatabase};
@@ -42,11 +42,6 @@ pub struct ModelSourceMap {
   pub textures:     HashMap<NodeId, AstPtr<ast::Value>>,
   pub elements:     HashMap<NodeId, AstPtr<ast::Object>>,
   pub faces:        HashMap<NodeId, AstPtr<ast::Object>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ModelPath {
-  pub path: Path,
 }
 
 #[derive(Debug, PartialEq, Eq)]

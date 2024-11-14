@@ -1,5 +1,6 @@
 use crate::diagnostic::Diagnostics;
 use la_arena::RawIdx;
+use mc_source::ModelPath;
 use mc_syntax::{
   ast::{self, AstNode},
   AstPtr, Json,

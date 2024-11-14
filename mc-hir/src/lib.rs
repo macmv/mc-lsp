@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use diagnostic::Diagnostics;
-use mc_source::{FileId, FileLocation, FileRange, ResolvedPath, SourceDatabase};
+use mc_source::{FileId, FileLocation, FileRange, ModelPath, ResolvedPath, SourceDatabase};
 use mc_syntax::{
   ast::{self, AstNode},
   AstPtr, T,
 };
-use model::{Model, ModelPath};
+use model::Model;
 
 pub mod diagnostic;
 pub mod model;
@@ -43,7 +43,7 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
   let workspace = db.workspace();
   let namespace = workspace.namespaces.iter().find(|n| n.name == path.path.namespace)?;
 
-  let search_path = ResolvedPath::Model(mc_source::ModelPath::new(path.path));
+  let search_path = ResolvedPath::Model(path);
 
   namespace.files.iter().find_map(|f| {
     if f.path().as_ref() == Some(&search_path) {
