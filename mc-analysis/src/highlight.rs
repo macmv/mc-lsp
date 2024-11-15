@@ -1,5 +1,8 @@
-use mc_hir::{blockstate, model, HirDatabase};
-use mc_source::{FileId, TextRange};
+use mc_hir::{
+  blockstate::{self, PropIter},
+  model, HirDatabase,
+};
+use mc_source::{FileId, TextRange, TextSize};
 use mc_syntax::ast::AstNode;
 
 #[derive(Debug, Clone)]
@@ -102,11 +105,27 @@ impl Highlighter<'_> {
 
     for (id, node) in blockstate.nodes.iter() {
       match node {
+        blockstate::Node::Variant(ref v) => {
+          let syntax = source_map.variants[&id].to_node(&ast);
+
+          for (text, range) in PropIter::new(&v.name, &syntax) {
+            let lhs = text.split('=').next().unwrap();
+            let rhs = text.split('=').nth(1).unwrap_or("");
+
+            self.highlight_range(
+              TextRange::new(range.start(), range.start() + TextSize::from(lhs.len() as u32)),
+              HighlightKind::Variable,
+            );
+            self.highlight_range(
+              TextRange::new(range.end() - TextSize::from(rhs.len() as u32), range.end()),
+              HighlightKind::Number,
+            );
+          }
+        }
+
         blockstate::Node::Model(_) => {
           self.highlight(source_map.models[&id].tree(&ast), HighlightKind::Model);
         }
-
-        _ => {}
       }
     }
 
@@ -115,7 +134,10 @@ impl Highlighter<'_> {
 
   fn highlight<T: AstNode>(&mut self, node: T, kind: HighlightKind) {
     let range = node.syntax().text_range();
+    self.highlight_range(range, kind);
+  }
 
+  fn highlight_range(&mut self, range: TextRange, kind: HighlightKind) {
     self.hl.tokens.push(HighlightToken { range, kind, modifierst: 0 });
   }
 }

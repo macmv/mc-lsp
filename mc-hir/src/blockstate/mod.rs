@@ -3,6 +3,8 @@ use std::{collections::HashMap, sync::Arc};
 mod parse;
 mod validate;
 
+pub use validate::PropIter;
+
 use la_arena::{Arena, Idx};
 use mc_source::{FileId, Path};
 use mc_syntax::{ast, AstPtr};
