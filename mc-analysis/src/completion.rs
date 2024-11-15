@@ -1,6 +1,9 @@
-use mc_hir::{model, HirDatabase};
+use mc_hir::{blockstate, model, HirDatabase};
 use mc_source::{FileLocation, FileType, Path, ResolvedPath};
-use mc_syntax::ast::{self, AstNode};
+use mc_syntax::{
+  ast::{self, AstNode},
+  SyntaxNode,
+};
 
 #[derive(Debug, Clone)]
 pub struct Completion {
@@ -43,7 +46,7 @@ pub fn model_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Complet
   let Some(node) = db.node_at_index(pos) else { return vec![] };
   let model = db.parse_model(pos.file);
 
-  let mut completer = Completer::new(db, pos, &model);
+  let mut completer = Completer::new_model(db, pos, &model);
 
   match model.nodes[node] {
     model::Node::Parent(_) => {
@@ -97,7 +100,7 @@ pub fn blockstate_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Co
 }
 
 impl Completer {
-  pub fn new(db: &dyn HirDatabase, pos: FileLocation, model: &model::Model) -> Completer {
+  pub fn new_model(db: &dyn HirDatabase, pos: FileLocation, model: &model::Model) -> Completer {
     let node = db.node_at_index(pos).unwrap();
     let mut current_path = None;
 
@@ -121,6 +124,34 @@ impl Completer {
       _ => {}
     }
 
+    Completer::new(current_path, pos)
+  }
+
+  pub fn new_blockstate(
+    db: &dyn HirDatabase,
+    pos: FileLocation,
+    blockstate: &blockstate::Blockstate,
+  ) -> Completer {
+    let node = db.blockstate_node_at_index(pos).unwrap();
+    let mut current_path = None;
+
+    let ast = db.parse_json(pos.file);
+    let (_, source_map, _) = db.parse_blockstate_with_source_map(pos.file);
+
+    match blockstate.nodes[node] {
+      blockstate::Node::Model(ref p) => {
+        let node = source_map.models[&node].to_node(&ast);
+
+        current_path = Some((p.path.clone(), node))
+      }
+
+      _ => {}
+    }
+
+    Completer::new(current_path, pos)
+  }
+
+  fn new(current_path: Option<(Path, SyntaxNode)>, pos: FileLocation) -> Completer {
     let current_path = current_path.map(|(_, node)| {
       // This is the location of the cursor within the path. The `-1` removes the
       // leading double quote.
