@@ -40,7 +40,9 @@ impl BlockstateParser<'_> {
             }
           }
         }
-        _ => self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+        _ => {
+          self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`"));
+        }
       }
     }
   }
@@ -60,7 +62,9 @@ impl BlockstateParser<'_> {
         "x" => variant.x = Some(F64Eq(self.parser.float(&value)?)),
         "y" => variant.y = Some(F64Eq(self.parser.float(&value)?)),
         "model" => variant.model = self.parse_path(value)?,
-        _ => self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+        _ => {
+          self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`"));
+        }
       }
     }
 

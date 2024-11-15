@@ -192,8 +192,19 @@ impl GlobalState {
                   line_index.try_line_col(d.span.end())?
                 };
 
+                let mut message = d.message.clone();
+                // This is quite dumb, but everything else I've tried looks worse.
+                //
+                // TODO: Maybe hints are the wrong concept, and I should implement quick fixes
+                // instead? Needs more thought.
+                for hint in &d.hints {
+                  message.push_str("\n\n");
+                  message.push_str("hint: ");
+                  message.push_str(&hint);
+                }
+
                 Some(lsp_types::Diagnostic {
-                  message: d.message.clone(),
+                  message,
                   severity: Some(match d.severity {
                     mc_analysis::diagnostic::Severity::Error => {
                       lsp_types::DiagnosticSeverity::ERROR

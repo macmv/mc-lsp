@@ -12,6 +12,7 @@ pub struct Diagnostic {
   pub span:     TextRange,
   pub message:  String,
   pub severity: Severity,
+  pub hints:    Vec<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -28,28 +29,40 @@ pub trait Spanned {
 impl Diagnostics {
   pub fn new() -> Self { Self { diagnostics: Vec::new() } }
 
-  pub fn error(&mut self, node: impl Spanned, message: impl Into<String>) {
+  pub fn error(&mut self, node: impl Spanned, message: impl Into<String>) -> &mut Diagnostic {
     self.diagnostics.push(Diagnostic::new_error(node.span(), message.into()));
+    self.diagnostics.last_mut().unwrap()
   }
-  pub fn warn(&mut self, node: impl Spanned, message: impl Into<String>) {
+  pub fn warn(&mut self, node: impl Spanned, message: impl Into<String>) -> &mut Diagnostic {
     self.diagnostics.push(Diagnostic::new_warn(node.span(), message.into()));
+    self.diagnostics.last_mut().unwrap()
   }
-  pub fn info(&mut self, node: impl Spanned, message: impl Into<String>) {
+  pub fn info(&mut self, node: impl Spanned, message: impl Into<String>) -> &mut Diagnostic {
     self.diagnostics.push(Diagnostic::new_info(node.span(), message.into()));
+    self.diagnostics.last_mut().unwrap()
   }
 
   pub fn iter(&self) -> impl Iterator<Item = &Diagnostic> { self.diagnostics.iter() }
 }
 
 impl Diagnostic {
+  pub fn new(span: TextRange, message: String, severity: Severity) -> Self {
+    Diagnostic { span, message, severity, hints: vec![] }
+  }
+
   pub fn new_error(span: TextRange, message: String) -> Self {
-    Self { span, message, severity: Severity::Error }
+    Diagnostic::new(span, message, Severity::Error)
   }
   pub fn new_warn(span: TextRange, message: String) -> Self {
-    Self { span, message, severity: Severity::Warn }
+    Diagnostic::new(span, message, Severity::Warn)
   }
   pub fn new_info(span: TextRange, message: String) -> Self {
-    Self { span, message, severity: Severity::Info }
+    Diagnostic::new(span, message, Severity::Info)
+  }
+
+  pub fn hint(&mut self, message: impl Into<String>) -> &mut Self {
+    self.hints.push(message.into());
+    self
   }
 }
 
