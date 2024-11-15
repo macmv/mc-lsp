@@ -85,7 +85,10 @@ impl Analysis {
   }
 
   pub fn definition_for_name(&self, pos: FileLocation) -> Cancellable<Option<FileRange>> {
-    self.with_db(|db| db.model_def_at_index(pos))
+    self.with_db(|db| match db.file_type(pos.file) {
+      FileType::Model => db.model_def_at_index(pos),
+      FileType::Blockstate => db.blockstate_def_at_index(pos),
+    })
   }
 
   pub fn references_for_name(&self, _: FileLocation) -> Cancellable<Vec<FileRange>> {

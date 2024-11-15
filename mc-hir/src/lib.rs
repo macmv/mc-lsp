@@ -51,7 +51,9 @@ pub trait HirDatabase: SourceDatabase {
   fn model_node_at_index(&self, pos: FileLocation) -> Option<model::NodeId>;
   fn model_def_at_node(&self, file: FileId, node: model::NodeId) -> Option<FileRange>;
 
+  fn blockstate_def_at_index(&self, pos: FileLocation) -> Option<FileRange>;
   fn blockstate_node_at_index(&self, pos: FileLocation) -> Option<blockstate::NodeId>;
+  fn blockstate_def_at_node(&self, file: FileId, node: blockstate::NodeId) -> Option<FileRange>;
 }
 
 fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Model> {
@@ -135,6 +137,12 @@ fn model_def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRan
   db.model_def_at_node(pos.file, node)
 }
 
+fn blockstate_def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
+  let node = db.blockstate_node_at_index(pos)?;
+
+  db.blockstate_def_at_node(pos.file, node)
+}
+
 fn model_def_at_node(db: &dyn HirDatabase, file: FileId, node: model::NodeId) -> Option<FileRange> {
   let model = db.parse_model(file);
 
@@ -184,6 +192,28 @@ fn model_def_at_node(db: &dyn HirDatabase, file: FileId, node: model::NodeId) ->
           }
         })
       })?;
+
+      Some(FileRange { file, range: None })
+    }
+
+    _ => None,
+  }
+}
+
+fn blockstate_def_at_node(
+  db: &dyn HirDatabase,
+  file: FileId,
+  node: blockstate::NodeId,
+) -> Option<FileRange> {
+  let blockstate = db.parse_blockstate(file);
+
+  match blockstate.nodes[node] {
+    blockstate::Node::Model(ref p) => {
+      let mut path = p.path.clone();
+      // Blockstates implicitly have this at the start.
+      path.segments.insert(0, "block".into());
+
+      let file = db.lookup_model(ModelPath { path })?;
 
       Some(FileRange { file, range: None })
     }
