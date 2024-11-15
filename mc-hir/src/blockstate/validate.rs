@@ -86,6 +86,9 @@ impl Validator<'_> {
     }
 
     let mut i = 1; // Start at 1 to chop off the leading `"`.
+    let mut prev_key = "";
+    let mut seen = HashSet::new();
+
     for prop in s.split(',') {
       // FIXME: Need to handle escapes.
       let span = TextRange::new(
@@ -106,6 +109,15 @@ impl Validator<'_> {
       let key = prop.split('=').next().unwrap();
       if key.is_empty() {
         self.diagnostics.error(span, format!("invalid empty property key`"));
+      }
+
+      if key < prev_key {
+        self.diagnostics.error(span, format!("property keys must be in alphabetical order"));
+      }
+      prev_key = key;
+
+      if !seen.insert(key) {
+        self.diagnostics.error(span, format!("duplicate property key `{}`", key));
       }
 
       if !key.chars().all(|c| matches!(c, 'a'..='z' | '_')) {
