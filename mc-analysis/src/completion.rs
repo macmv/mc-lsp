@@ -151,7 +151,17 @@ fn model_keyword_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Com
       kind:        CompletionKind::Namespace,
       description: s.to_string(),
       retrigger:   true,
-      insert:      format!("\"{}\": ", s.to_string()),
+      insert:      match parent.kind() {
+        // FIXME: This would be simplified if we could get text edits working.
+
+        // If we're in an object, insert a new key.
+        ast::SyntaxKind::OBJECT => format!("\"{s}\": "),
+        // If we're in a key already, just insert the text.
+        ast::SyntaxKind::KEY => s.to_string(),
+
+        // TODO: Handle other parent tokens.
+        _ => s.to_string(),
+      },
     })
     .collect()
 }
