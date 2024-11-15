@@ -1,11 +1,18 @@
 import * as vscode from "vscode";
 import { ExtensionContext, Uri, WebviewPanel } from "vscode";
+import { LanguageClient } from "vscode-languageclient/node";
 
 export class Preview {
+  client: LanguageClient;
   context: ExtensionContext;
   panel: WebviewPanel;
 
-  constructor(context: ExtensionContext, panel: WebviewPanel) {
+  constructor(
+    client: LanguageClient,
+    context: ExtensionContext,
+    panel: WebviewPanel,
+  ) {
+    this.client = client;
     this.context = context;
     this.panel = panel;
 
@@ -29,7 +36,15 @@ export class Preview {
     });
   }
 
-  async render(model: any) {
+  async render(uri: Uri) {
+    const res: any = await this.client.sendRequest("mc-lsp/canonicalModel", {
+      uri: uri.toString(),
+    });
+
+    await this.renderModel(res.model);
+  }
+
+  async renderModel(model: any) {
     for (const element of model.elements) {
       for (const f of ["up", "down", "east", "west", "north", "south"]) {
         const face = element.faces[f];

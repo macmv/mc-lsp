@@ -21,13 +21,7 @@ export async function activate(context: vscode.ExtensionContext) {
       preview !== undefined &&
       editor.document.uri !== undefined
     ) {
-      const uri = editor.document.uri;
-
-      const res: any = await client.sendRequest("mc-lsp/canonicalModel", {
-        uri: uri.toString(),
-      });
-
-      await preview.render(res.model);
+      await preview.render(editor.document.uri);
     }
   });
 
@@ -46,19 +40,13 @@ export async function activate(context: vscode.ExtensionContext) {
           },
         );
 
-        preview = new Preview(context, panel);
+        preview = new Preview(client, context, panel);
         await preview.setup();
       } else {
         preview.panel.reveal(vscode.ViewColumn.Two, true);
       }
 
-      const uri = vscode.window.visibleTextEditors[0].document.uri!;
-
-      const res: any = await client.sendRequest("mc-lsp/canonicalModel", {
-        uri: uri.toString(),
-      });
-
-      await preview.render(res.model);
+      await preview.render(vscode.window.visibleTextEditors[0].document.uri!);
     }),
   );
 
