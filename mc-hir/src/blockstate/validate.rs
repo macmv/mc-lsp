@@ -72,6 +72,11 @@ impl Validator<'_> {
   }
 
   fn check_prop_list(&mut self, s: &str, syntax: SyntaxNode) {
+    // Special case: no properties.
+    if s == "normal" {
+      return;
+    }
+
     if s == "" {
       self
         .diagnostics
