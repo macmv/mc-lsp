@@ -1,5 +1,5 @@
 use mc_hir::{model, HirDatabase};
-use mc_source::{FileLocation, Path, ResolvedPath};
+use mc_source::{FileLocation, FileType, Path, ResolvedPath};
 use mc_syntax::ast::{self, AstNode};
 
 #[derive(Debug, Clone)]
@@ -40,6 +40,13 @@ enum PrefixPath {
 }
 
 pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
+  match db.file_type(pos.file) {
+    FileType::Model => model_completions(db, pos),
+    FileType::Blockstate => blockstate_completions(db, pos),
+  }
+}
+
+pub fn model_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
   let Some(node) = db.node_at_index(pos) else { return vec![] };
   let model = db.parse_model(pos.file);
 
@@ -87,6 +94,13 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
   }
 
   completer.completions
+}
+
+pub fn blockstate_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
+  let Some(_node) = db.node_at_index(pos) else { return vec![] };
+  let _model = db.parse_blockstate(pos.file);
+
+  vec![]
 }
 
 impl<'a> Completer<'a> {
