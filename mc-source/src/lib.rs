@@ -41,37 +41,8 @@ pub trait FileType {
   fn parse(text: &str) -> Parse<Self::Source>;
 }
 
-pub struct TypedFileId<T: FileType> {
-  pub raw:  FileId,
-  _phantom: PhantomData<T>,
-}
-
-impl<T: FileType> Clone for TypedFileId<T> {
-  fn clone(&self) -> Self { TypedFileId { raw: self.raw, _phantom: PhantomData } }
-}
-impl<T: FileType> Copy for TypedFileId<T> {}
-impl<T: FileType> std::fmt::Debug for TypedFileId<T> {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "FileId<{:?}>({:?})", std::any::type_name::<T>(), self.raw)
-  }
-}
-impl<T: FileType> PartialEq for TypedFileId<T> {
-  fn eq(&self, other: &Self) -> bool { self.raw == other.raw }
-}
-impl<T: FileType> Eq for TypedFileId<T> {}
-impl<T: FileType> std::hash::Hash for TypedFileId<T> {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) { self.raw.hash(state) }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FileId(u32);
-
-impl<T: FileType> TypedFileId<T> {
-  pub fn temp_new() -> Self { TypedFileId { raw: FileId(0), _phantom: PhantomData } }
-
-  /// DO NOT USE THIS! Its just for unit tests.
-  pub fn new_raw(id: u32) -> Self { TypedFileId { raw: FileId(id), _phantom: PhantomData } }
-}
 
 impl FileId {
   /// DO NOT USE THIS! Its just for unit tests.
