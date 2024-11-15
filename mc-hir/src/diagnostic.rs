@@ -73,6 +73,17 @@ impl Diagnostic {
     self.hints.push(message.into());
     self
   }
+
+  pub fn suggest_remove(&mut self, title: impl Into<String>, span: TextRange) -> &mut Self {
+    self.suggestion = Some(Suggestion::remove(title, span));
+    self
+  }
+}
+
+impl Suggestion {
+  pub fn remove(title: impl Into<String>, range: TextRange) -> Self {
+    Suggestion { title: title.into(), range, replace: String::new() }
+  }
 }
 
 impl Spanned for TextRange {
