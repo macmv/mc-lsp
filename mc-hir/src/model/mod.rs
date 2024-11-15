@@ -1,7 +1,4 @@
-use std::{
-  collections::{HashMap, HashSet},
-  sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 mod parse;
 mod validate;
