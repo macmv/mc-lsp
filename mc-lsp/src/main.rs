@@ -85,7 +85,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 }
 
 fn setup_logging() {
-  let dir = PathBuf::from("/home/macmv/.cache/mclsp");
+  let dir = PathBuf::from(std::env::var("HOME").unwrap()).join(".cache").join("mclsp");
   fs::create_dir_all(&dir).unwrap();
 
   fern::Dispatch::new()
