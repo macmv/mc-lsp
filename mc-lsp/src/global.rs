@@ -133,8 +133,6 @@ impl GlobalState {
     Ok(())
   }
 
-  // TODO: Workspace discovery.
-  #[allow(unused)]
   pub fn set_workspace(&mut self, workspace: Workspace) {
     self.analysis_host.set_workspace(workspace);
     let workspace = self.analysis_host.workspace();

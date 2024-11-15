@@ -31,8 +31,17 @@ pub trait SourceDatabase: std::fmt::Debug {
   #[salsa::input]
   fn file_text(&self, file_id: FileId) -> Arc<str>;
 
+  #[salsa::input]
+  fn file_type(&self, file_id: FileId) -> FileType;
+
   /// Parses the file into the syntax tree.
   fn parse_json(&self, file_id: FileId) -> Parse<mc_syntax::Json>;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FileType {
+  Model,
+  Blockstate,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -59,6 +68,7 @@ pub struct Namespace {
 #[derive(Debug)]
 pub struct File {
   pub id:   FileId,
+  pub ty:   FileType,
   pub path: Path,
 }
 

@@ -14,7 +14,7 @@ use database::{LineIndexDatabase, RootDatabase};
 use highlight::Highlight;
 use line_index::LineIndex;
 use mc_hir::{diagnostic::Diagnostics, model, HirDatabase};
-use mc_source::{FileId, FileLocation, FileRange, SourceDatabase, Workspace};
+use mc_source::{FileId, FileLocation, FileRange, FileType, SourceDatabase, Workspace};
 use salsa::{Cancelled, ParallelDatabase};
 
 pub use mc_hir::diagnostic;
@@ -47,10 +47,12 @@ impl AnalysisHost {
     self.db.set_workspace(workspace.into());
   }
 
-  pub fn add_file(&mut self, file: FileId) { self.db.set_file_text(file, "".into()); }
-
   pub fn workspace(&self) -> Arc<Workspace> { self.db.workspace() }
 
+  pub fn add_file(&mut self, file: FileId, ty: FileType, content: String) {
+    self.db.set_file_type(file, ty);
+    self.db.set_file_text(file, content.into());
+  }
   pub fn change(&mut self, change: Change) {
     self.db.set_file_text(change.file, change.text.into());
   }
@@ -72,7 +74,10 @@ impl Analysis {
     self.with_db(|db| completion::completions(db, pos))
   }
   pub fn diagnostics(&self, file: FileId) -> Cancellable<Arc<Diagnostics>> {
-    self.with_db(|db| db.validate_model(file))
+    self.with_db(|db| match db.file_type(file) {
+      FileType::Model => db.validate_model(file),
+      FileType::Blockstate => Arc::new(Diagnostics::new()), // TODO
+    })
   }
 
   pub fn highlight(&self, file: FileId) -> Cancellable<Highlight> {
