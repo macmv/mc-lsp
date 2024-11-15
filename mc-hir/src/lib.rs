@@ -50,6 +50,8 @@ pub trait HirDatabase: SourceDatabase {
   fn def_at_index(&self, pos: FileLocation) -> Option<FileRange>;
   fn node_at_index(&self, pos: FileLocation) -> Option<model::NodeId>;
   fn def_at_node(&self, file: FileId, node: model::NodeId) -> Option<FileRange>;
+
+  fn blockstate_node_at_index(&self, pos: FileLocation) -> Option<blockstate::NodeId>;
 }
 
 fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Model> {
@@ -97,6 +99,31 @@ fn node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<model::NodeI
     k if ast::Element::can_cast(k) => {
       let ptr = AstPtr::new(&ast::Element::cast(node).unwrap());
       source_map.ast_elements.get(&ptr).copied()
+    }
+    _ => None,
+  })
+}
+
+// FIXME: Dedupe with the model's version.
+fn blockstate_node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<blockstate::NodeId> {
+  let ast = db.parse_json(pos.file);
+  let (_, source_map, _) = db.parse_blockstate_with_source_map(pos.file);
+
+  let token = ast
+    .syntax_node()
+    .token_at_offset(pos.index)
+    .max_by_key(|token| match token.kind() {
+      T![string] => 10,
+      T![number] => 9,
+
+      _ => 1,
+    })
+    .unwrap();
+
+  token.parent_ancestors().find_map(|node| match node.kind() {
+    k if ast::Value::can_cast(k) => {
+      let ptr = AstPtr::new(&ast::Value::cast(node).unwrap());
+      source_map.ast_models.get(&ptr).copied()
     }
     _ => None,
   })

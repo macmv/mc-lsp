@@ -77,7 +77,7 @@ impl BlockstateParser<'_> {
       self.parser.diagnostics.error(p.syntax(), "expected string");
       return None;
     };
-    Some(self.alloc(p, Model { name: path.parse().ok()? }))
+    Some(self.alloc(p, Model { path: path.parse().ok()? }))
   }
 
   fn alloc<T: BlockstateNode>(&mut self, elem: T::Ast, node: T) -> NodeId {

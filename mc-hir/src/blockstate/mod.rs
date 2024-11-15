@@ -4,7 +4,7 @@ mod parse;
 mod validate;
 
 use la_arena::{Arena, Idx};
-use mc_source::FileId;
+use mc_source::{FileId, Path};
 use mc_syntax::{ast, AstPtr};
 
 use crate::{diagnostic::Diagnostics, model::F64Eq, HirDatabase};
@@ -42,7 +42,7 @@ pub struct Variant {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Model {
-  pub name: String,
+  pub path: Path,
 }
 
 pub fn parse_blockstate(
