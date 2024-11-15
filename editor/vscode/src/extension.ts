@@ -25,6 +25,12 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   });
 
+  vscode.workspace.onDidSaveTextDocument(async (document) => {
+    if (preview !== undefined && document.uri !== undefined) {
+      await preview.render(document.uri);
+    }
+  });
+
   context.subscriptions.push(
     vscode.commands.registerCommand("mclsp.previewModel", async () => {
       if (preview === undefined || preview.panel === undefined) {
