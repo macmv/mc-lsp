@@ -93,6 +93,9 @@ impl Highlighter<'_> {
         model::Node::Texture(_) => {
           self.highlight(source_map.textures[&id].tree(&ast), HighlightKind::Variable);
         }
+        model::Node::Parent(_) => {
+          self.highlight(source_map.parent[&id].tree(&ast), HighlightKind::Model);
+        }
 
         _ => {}
       }
