@@ -52,35 +52,9 @@ impl Highlight {
   pub fn from_ast(db: &dyn HirDatabase, file: FileId) -> Highlight {
     let mut hl = Highlighter::new(db, file);
 
-    /*
-    let ast = db.parse(file);
-
-    // TODO
-    let syntax = ast.syntax_node();
-    for node in syntax.descendants() {}
-    */
-
-    let ast = db.parse_json(file);
-    let (model, source_map, _) = db.parse_model_with_source_map(file);
-
-    for (id, node) in model.nodes.iter() {
-      match node {
-        model::Node::TextureDef(_) => {
-          let element = source_map.texture_defs[&id].tree(&ast);
-
-          if let Some(key) = element.key() {
-            hl.highlight(key, HighlightKind::Variable);
-          }
-          if let Some(value) = element.value() {
-            hl.highlight(value, HighlightKind::Texture);
-          }
-        }
-        model::Node::Texture(_) => {
-          hl.highlight(source_map.textures[&id].tree(&ast), HighlightKind::Variable);
-        }
-
-        _ => {}
-      }
+    match db.file_type(file) {
+      mc_source::FileType::Model => hl.highlight_model(),
+      mc_source::FileType::Blockstate => hl.highlight_blockstate(),
     }
 
     hl.hl.tokens.sort_by_key(|t| t.range.start());
@@ -92,6 +66,38 @@ impl Highlight {
 impl Highlighter<'_> {
   fn new(db: &dyn HirDatabase, file: FileId) -> Highlighter {
     Highlighter { db, file, hl: Highlight { tokens: Vec::new() } }
+  }
+
+  fn highlight_model(&mut self) {
+    let ast = self.db.parse_json(self.file);
+    let (model, source_map, _) = self.db.parse_model_with_source_map(self.file);
+
+    for (id, node) in model.nodes.iter() {
+      match node {
+        model::Node::TextureDef(_) => {
+          let element = source_map.texture_defs[&id].tree(&ast);
+
+          if let Some(key) = element.key() {
+            self.highlight(key, HighlightKind::Variable);
+          }
+          if let Some(value) = element.value() {
+            self.highlight(value, HighlightKind::Texture);
+          }
+        }
+        model::Node::Texture(_) => {
+          self.highlight(source_map.textures[&id].tree(&ast), HighlightKind::Variable);
+        }
+
+        _ => {}
+      }
+    }
+  }
+
+  fn highlight_blockstate(&mut self) {
+    let ast = self.db.parse_json(self.file);
+    let (model, source_map, _) = self.db.parse_blockstate_with_source_map(self.file);
+
+    // TODO
   }
 
   fn highlight<T: AstNode>(&mut self, node: T, kind: HighlightKind) {
