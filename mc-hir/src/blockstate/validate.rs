@@ -1,7 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
 use mc_source::{FileId, TextRange, TextSize};
-use mc_syntax::{Json, Parse, SyntaxNode};
+use mc_syntax::{
+  ast::{self, AstNode},
+  Json, Parse, SyntaxNode,
+};
 
 use crate::{diagnostic::Diagnostics, HirDatabase};
 
@@ -48,8 +51,25 @@ impl Validator<'_> {
       }
     }
 
-    // FIXME:
-    let outer_span = TextRange::new(TextSize::from(0), TextSize::from(0));
+    let outer_span = match self.json.tree().value().unwrap() {
+      ast::Value::Object(obj) => {
+        let mut range = None;
+        for (key, value) in obj.iter() {
+          if key.parse_text().as_str() == "variants" {
+            // Only underline the first character, as underlining everything is too
+            // annoying.
+            let start = value.syntax().text_range().start();
+            range = Some(TextRange::new(start, start + TextSize::from(1)));
+            break;
+          }
+        }
+
+        range.unwrap_or(self.json.syntax_node().text_range())
+      }
+
+      // Just give up and return something dumb.
+      _ => self.json.syntax_node().text_range(),
+    };
 
     if all_defined.is_empty() {
       self.diagnostics.error(outer_span, "missing 'normal' variant");
