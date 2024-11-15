@@ -76,7 +76,7 @@ impl Analysis {
   pub fn diagnostics(&self, file: FileId) -> Cancellable<Arc<Diagnostics>> {
     self.with_db(|db| match db.file_type(file) {
       FileType::Model => db.validate_model(file),
-      FileType::Blockstate => Arc::new(Diagnostics::new()), // TODO
+      FileType::Blockstate => db.validate_blockstate(file),
     })
   }
 

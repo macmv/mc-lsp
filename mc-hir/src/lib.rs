@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use blockstate::Blockstate;
 use diagnostic::Diagnostics;
 use mc_source::{FileId, FileLocation, FileRange, ModelPath, ResolvedPath, SourceDatabase};
 use mc_syntax::{
@@ -8,6 +9,7 @@ use mc_syntax::{
 };
 use model::Model;
 
+pub mod blockstate;
 pub mod diagnostic;
 pub mod model;
 
@@ -23,10 +25,20 @@ pub trait HirDatabase: SourceDatabase {
     file_id: FileId,
   ) -> (Arc<Model>, Arc<model::ModelSourceMap>, Arc<Diagnostics>);
 
+  #[salsa::invoke(blockstate::parse_blockstate)]
+  fn parse_blockstate_with_source_map(
+    &self,
+    file_id: FileId,
+  ) -> (Arc<Blockstate>, Arc<blockstate::BlockstateSourceMap>, Arc<Diagnostics>);
+
   fn parse_model(&self, file_id: FileId) -> Arc<Model>;
+  fn parse_blockstate(&self, file_id: FileId) -> Arc<Blockstate>;
 
   #[salsa::invoke(model::validate_model)]
   fn validate_model(&self, file_id: FileId) -> Arc<Diagnostics>;
+
+  #[salsa::invoke(blockstate::validate_blockstate)]
+  fn validate_blockstate(&self, file_id: FileId) -> Arc<Diagnostics>;
 
   fn lookup_model(&self, path: ModelPath) -> Option<FileId>;
 
@@ -41,6 +53,9 @@ pub trait HirDatabase: SourceDatabase {
 
 fn parse_model(db: &dyn HirDatabase, file_id: FileId) -> Arc<Model> {
   db.parse_model_with_source_map(file_id).0
+}
+fn parse_blockstate(db: &dyn HirDatabase, file_id: FileId) -> Arc<Blockstate> {
+  db.parse_blockstate_with_source_map(file_id).0
 }
 
 fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {

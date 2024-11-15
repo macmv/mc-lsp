@@ -84,7 +84,7 @@ pub struct Face {
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub struct F64Eq(f64);
+pub struct F64Eq(pub f64);
 
 impl From<f64> for F64Eq {
   fn from(f: f64) -> Self { Self(f) }
