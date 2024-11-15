@@ -33,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("mclsp.previewModel", async () => {
-      if (preview === undefined) {
+      if (preview === undefined || preview.panel === undefined) {
         const panel = vscode.window.createWebviewPanel(
           "previewModel",
           "Preview Model",

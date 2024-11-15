@@ -9,6 +9,10 @@ export class Preview {
   constructor(context: ExtensionContext, panel: WebviewPanel) {
     this.context = context;
     this.panel = panel;
+
+    this.panel.onDidDispose(() => {
+      this.panel = undefined!;
+    });
   }
 
   async setup() {
