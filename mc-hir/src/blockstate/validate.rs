@@ -4,7 +4,7 @@ use std::{
 };
 
 use mc_source::{FileId, TextRange, TextSize};
-use mc_syntax::{Json, Parse, SyntaxKind, SyntaxNode};
+use mc_syntax::{Json, Parse, SyntaxNode};
 
 use crate::{diagnostic::Diagnostics, HirDatabase};
 
@@ -44,31 +44,81 @@ struct Prop {
 
 impl Validator<'_> {
   fn validate_blockstate(&mut self) {
+    // These are all the defined properties.
+    let mut all_defined = HashMap::<String, TextRange>::new();
+
     for (id, node) in self.model.nodes.iter() {
       match node {
         Node::Variant(variant) => {
-          self.check_prop_list(&variant.name, self.source_map.variants[&id].to_node(&self.json))
+          let syntax = self.source_map.variants[&id].to_node(&self.json);
+          all_defined.insert(variant.name.clone(), syntax.text_range());
+          self.check_prop_list(&variant.name, syntax);
         }
         _ => {}
       }
     }
 
     // This is the inferred property map of this blockstate.
-    let mut all_props = HashMap::<String, HashSet<String>>::new();
+    let mut all_props = Vec::<(String, Vec<String>)>::new();
 
     for node in self.model.nodes.values() {
       match node {
         Node::Variant(variant) => {
           let props = self.parse_prop_list(&variant.name);
           for prop in props {
-            all_props.entry(prop.key.clone()).or_default().insert(prop.value.clone());
+            let p = match all_props.binary_search_by(|(key, _)| key.cmp(&prop.key)) {
+              Ok(i) => &mut all_props[i].1,
+              Err(i) => {
+                all_props.insert(i, (prop.key.clone(), vec![]));
+                &mut all_props[i].1
+              }
+            };
+
+            match p.binary_search(&prop.value) {
+              Ok(_) => {}
+              Err(i) => p.insert(i, prop.value.clone()),
+            }
           }
         }
         _ => {}
       }
     }
 
-    // TODO: Check if all combinations have been specified.
+    if all_props.is_empty() {
+      return;
+    }
+
+    let mut indices = vec![0; all_props.len()];
+
+    loop {
+      let mut props = vec![];
+      for (i, (key, values)) in all_props.iter().enumerate() {
+        props.push(format!("{}={}", key, values[indices[i]]));
+      }
+      let prop_str = props.join(",");
+
+      if !all_defined.contains_key(&prop_str) {
+        self.diagnostics.warn(
+          TextRange::new(TextSize::from(0), TextSize::from(0)),
+          format!("missing variant for `{}`", prop_str),
+        );
+      }
+
+      let mut i = 0;
+      loop {
+        indices[i] += 1;
+        if indices[i] < all_props[i].1.len() {
+          break;
+        }
+
+        indices[i] = 0;
+        i += 1;
+
+        if i >= all_props.len() {
+          return;
+        }
+      }
+    }
   }
 
   fn check_prop_list(&mut self, s: &str, syntax: SyntaxNode) {
