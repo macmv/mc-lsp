@@ -48,8 +48,8 @@ pub fn extract_jar() -> io::Result<PathBuf> {
     let mut path = destination.clone();
     path.push(name);
 
-    // We only care about model files.
-    if !name.ends_with(".json") {
+    // We only care about models and textures.
+    if !name.ends_with(".json") && !name.ends_with(".png") {
       continue;
     }
 
