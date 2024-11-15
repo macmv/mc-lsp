@@ -46,9 +46,11 @@ fn discover_sources(
   for entry in std::fs::read_dir(path)? {
     let entry = entry?;
     let path = entry.path();
+
+    let mut relative = relative.clone();
+    relative.segments.push(path.file_name().unwrap().to_string_lossy().to_string());
+
     if path.is_dir() {
-      let mut relative = relative.clone();
-      relative.segments.push(path.file_name().unwrap().to_string_lossy().to_string());
       discover_sources(path.as_path(), &relative, sources, files)?;
     } else {
       let ty = match relative.segments.first().map(|s| s.as_str()) {
@@ -67,14 +69,14 @@ fn discover_sources(
             let id = files.create(&path);
             let content = std::fs::read_to_string(&path)?;
             files.write(id, FileContent::Json(content));
-            sources.push(File { id, ty, path: relative.clone() });
+            sources.push(File { id, ty, path: relative });
           }
           Some(ext) if ext == "png" => {
             let id = files.create(&path);
             let content = std::fs::read(&path)?;
             files.write(id, FileContent::Png(content));
             // FIXME: This `ty` shouldn't exist on textures.
-            sources.push(File { id, ty: FileType::Model, path: relative.clone() });
+            sources.push(File { id, ty: FileType::Model, path: relative });
           }
           _ => {}
         },
