@@ -8,7 +8,16 @@ pub fn handle_open_text_document(
 ) -> Result<(), Box<dyn Error>> {
   if let Some(path) = global.absolute_path(&params.text_document.uri) {
     let mut w = global.files.write();
-    let file_id = w.create(&path);
+
+    // TODO: We should discover sources here, not when the server starts. For now,
+    // we only want this to do anything once the server has discovered all its
+    // files.
+    let file_id = match w.get_absolute(&path) {
+      Some(id) => id,
+      // We haven't indexed this file, so we don't care about it.
+      None => return Ok(()),
+    };
+
     w.write(file_id, FileContent::Json(params.text_document.text.clone()));
   }
 

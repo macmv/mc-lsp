@@ -51,9 +51,10 @@ fn discover_sources(
       relative.segments.push(path.file_name().unwrap().to_string_lossy().to_string());
       discover_sources(path.as_path(), &relative, sources, files)?;
     } else {
-      let ty = match relative.segments.get(1).map(|s| s.as_str()) {
+      let ty = match relative.segments.first().map(|s| s.as_str()) {
         Some("models") => FileType::Model,
         Some("blockstates") => FileType::Blockstate,
+        Some("textures") => FileType::Model, // FIXME: `ty` shouldn't exist on textures.
         _ => continue,
       };
 
