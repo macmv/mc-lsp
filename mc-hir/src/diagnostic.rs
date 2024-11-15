@@ -38,6 +38,11 @@ pub trait Spanned {
 impl Diagnostics {
   pub fn new() -> Self { Self { diagnostics: Vec::new() } }
 
+  pub fn push(&mut self, diagnostic: Diagnostic) { self.diagnostics.push(diagnostic) }
+  pub fn extend(&mut self, diagnostics: &Diagnostics) {
+    self.diagnostics.extend_from_slice(&diagnostics.diagnostics)
+  }
+
   pub fn error(&mut self, node: impl Spanned, message: impl Into<String>) -> &mut Diagnostic {
     self.diagnostics.push(Diagnostic::new_error(node.span(), message.into()));
     self.diagnostics.last_mut().unwrap()

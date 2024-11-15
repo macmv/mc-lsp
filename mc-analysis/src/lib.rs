@@ -14,7 +14,9 @@ use database::{LineIndexDatabase, RootDatabase};
 use highlight::Highlight;
 use line_index::LineIndex;
 use mc_hir::{diagnostic::Diagnostics, model, HirDatabase};
-use mc_source::{FileId, FileLocation, FileRange, FileType, SourceDatabase, Workspace};
+use mc_source::{
+  FileId, FileLocation, FileRange, FileType, SourceDatabase, TextRange, TextSize, Workspace,
+};
 use salsa::{Cancelled, ParallelDatabase};
 
 pub use mc_hir::diagnostic;
@@ -73,10 +75,23 @@ impl Analysis {
   pub fn completions(&self, pos: FileLocation) -> Cancellable<Vec<Completion>> {
     self.with_db(|db| completion::completions(db, pos))
   }
-  pub fn diagnostics(&self, file: FileId) -> Cancellable<Arc<Diagnostics>> {
-    self.with_db(|db| match db.file_type(file) {
-      FileType::Model => db.validate_model(file),
-      FileType::Blockstate => db.validate_blockstate(file),
+  pub fn diagnostics(&self, file: FileId) -> Cancellable<Diagnostics> {
+    self.with_db(|db| {
+      let mut diagnostics = Diagnostics::new();
+      let parse = db.parse_json(file);
+      for error in parse.errors() {
+        diagnostics.error(
+          TextRange::new(error.offset, error.offset + TextSize::new(1)),
+          error.message.clone(),
+        );
+      }
+
+      match db.file_type(file) {
+        FileType::Model => diagnostics.extend(&db.validate_model(file)),
+        FileType::Blockstate => diagnostics.extend(&db.validate_blockstate(file)),
+      }
+
+      diagnostics
     })
   }
 

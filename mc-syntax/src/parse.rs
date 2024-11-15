@@ -36,18 +36,7 @@ fn build_tree(events: Vec<mc_parser::Event>, source: &str) -> (GreenNode, Vec<Sy
     }
   }
 
-  let (node, errors) = builder.finish_raw();
-  // TODO: Collect lexer errors
-  /*
-  for (i, err) in lexer.errors() {
-    let text_range = lexer.text_range(i);
-    let text_range =
-      TextRange::new(text_range.start.try_into().unwrap(), text_range.end.try_into().unwrap());
-    errors.push(SyntaxError::new(err, text_range))
-  }
-  */
-
-  (node, errors)
+  builder.finish_raw()
 }
 
 struct SyntaxTreeBuilder {

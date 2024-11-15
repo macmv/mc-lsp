@@ -51,7 +51,6 @@ impl<T: AstNode> AstPtr<T> {
 
 impl Json {
   pub fn parse(text: &str) -> Parse<Json> {
-    // TODO
     let (green, errors) = parse::parse_text(text);
     let root = SyntaxNode::new_root(green.clone());
 
