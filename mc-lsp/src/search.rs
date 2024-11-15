@@ -28,7 +28,7 @@ fn discover_assets_in(workspace: &mut Workspace, files: &mut Files, path: &path:
 
     let mut sources = vec![];
     let root_path: PathBuf = path.join(&name).canonicalize().unwrap();
-    files.change_root(root_path.clone());
+    files.add_namespace(rel_path.namespace.clone(), root_path.clone());
     discover_sources(&root_path, &rel_path, &mut sources, files).unwrap();
 
     workspace
@@ -39,7 +39,7 @@ fn discover_assets_in(workspace: &mut Workspace, files: &mut Files, path: &path:
 
 fn discover_sources(
   path: &path::Path,
-  rel_path: &Path,
+  relative: &Path,
   sources: &mut Vec<File>,
   files: &mut Files,
 ) -> io::Result<()> {
@@ -47,13 +47,10 @@ fn discover_sources(
     let entry = entry?;
     let path = entry.path();
     if path.is_dir() {
-      discover_sources(path.as_path(), &rel_path, sources, files)?;
-    } else if let Some(r) = files.relative_path(&path) {
-      let mut relative = Path::new_namespace(rel_path.namespace.clone());
-      for segment in r.iter() {
-        relative.segments.push(segment.to_string_lossy().to_string());
-      }
-
+      let mut relative = relative.clone();
+      relative.segments.push(path.file_name().unwrap().to_string_lossy().to_string());
+      discover_sources(path.as_path(), &relative, sources, files)?;
+    } else {
       let ty = match relative.segments.get(1).map(|s| s.as_str()) {
         Some("models") => FileType::Model,
         Some("blockstates") => FileType::Blockstate,
@@ -62,21 +59,21 @@ fn discover_sources(
 
       match files.get_absolute(&path) {
         Some(id) => {
-          sources.push(File { id, ty, path: relative.into() });
+          sources.push(File { id, ty, path: relative.clone() });
         }
-        None => match r.extension() {
+        None => match path.extension() {
           Some(ext) if ext == "json" => {
             let id = files.create(&path);
             let content = std::fs::read_to_string(&path)?;
             files.write(id, FileContent::Json(content));
-            sources.push(File { id, ty, path: relative.into() });
+            sources.push(File { id, ty, path: relative.clone() });
           }
           Some(ext) if ext == "png" => {
             let id = files.create(&path);
             let content = std::fs::read(&path)?;
             files.write(id, FileContent::Png(content));
             // FIXME: This `ty` shouldn't exist on textures.
-            sources.push(File { id, ty: FileType::Model, path: relative.into() });
+            sources.push(File { id, ty: FileType::Model, path: relative.clone() });
           }
           _ => {}
         },

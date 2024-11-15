@@ -8,13 +8,17 @@ use std::{
 use mc_source::FileId;
 
 pub struct Files {
+  /// Namespaces to absolute paths.
+  namespace_roots: HashMap<Namespace, PathBuf>,
+
   files:       HashMap<FileId, File>,
   file_lookup: HashMap<FilePath, FileId>,
 
-  root: PathBuf,
-
   changes: Vec<FileId>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct Namespace(String);
 
 struct File {
   content: FileContent,
@@ -29,24 +33,48 @@ pub enum FileContent {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum FilePath {
-  Rooted { relative_path: PathBuf },
+  Rooted { namespace: Namespace, relative_path: PathBuf },
   // Some files don't have a source root, in which case we just leave this blank.
   Absolute(PathBuf),
 }
 
 impl Files {
-  pub fn new(root: PathBuf) -> Self {
-    Files { files: HashMap::new(), file_lookup: HashMap::new(), root, changes: vec![] }
+  pub fn new() -> Self {
+    Files {
+      namespace_roots: HashMap::new(),
+      files:           HashMap::new(),
+      file_lookup:     HashMap::new(),
+      changes:         vec![],
+    }
+  }
+
+  pub fn add_namespace(&mut self, name: String, namespace_path: PathBuf) {
+    let namespace = Namespace(name);
+    self.namespace_roots.insert(namespace.clone(), namespace_path.clone());
+
+    for file in self.files.values_mut() {
+      if let FilePath::Absolute(path) = &mut file.path {
+        if let Ok(relative) = path.strip_prefix(&namespace_path) {
+          file.path =
+            FilePath::Rooted { namespace: namespace.clone(), relative_path: relative.into() };
+        }
+      }
+    }
   }
 
   fn make_file_path(&self, path: &Path) -> FilePath {
     assert!(path.is_absolute(), "cannot create source root for relative path {}", path.display());
 
-    if let Ok(rel) = path.strip_prefix(&self.root) {
-      FilePath::Rooted { relative_path: rel.to_path_buf() }
-    } else {
-      FilePath::Absolute(path.to_path_buf())
+    for (namespace, root) in &self.namespace_roots {
+      if let Ok(relative) = path.strip_prefix(root) {
+        return FilePath::Rooted {
+          namespace:     namespace.clone(),
+          relative_path: relative.to_path_buf(),
+        };
+      }
     }
+
+    FilePath::Absolute(path.to_path_buf())
   }
 
   pub fn read(&self, id: FileId) -> FileContent {
@@ -75,45 +103,11 @@ impl Files {
   pub fn get_absolute(&self, path: &Path) -> Option<FileId> {
     assert!(path.is_absolute(), "cannot lookup absolute for relative path {}", path.display());
 
-    if self.within_root(path) {
-      let relative = path.strip_prefix(&self.root).unwrap();
-
-      self.file_lookup.get(&FilePath::Rooted { relative_path: relative.to_path_buf() }).copied()
-    } else {
-      self.file_lookup.get(&FilePath::Absolute(path.to_path_buf())).copied()
-    }
+    self.file_lookup.get(&self.make_file_path(path)).copied()
   }
 
-  pub fn relative_path<'a>(&self, path: &'a Path) -> Option<&'a Path> {
-    assert!(path.is_absolute(), "cannot lookup relative for relative path {}", path.display());
-
-    if self.within_root(path) {
-      Some(path.strip_prefix(&self.root).unwrap())
-    } else {
-      None
-    }
-  }
-
-  #[track_caller]
-  fn within_root(&self, path: &Path) -> bool {
-    assert!(path.is_absolute(), "cannot find source root for relative path {}", path.display());
-
-    Self::within_root_lookup(&self.root, path)
-  }
-
-  fn within_root_lookup(root: &Path, path: &Path) -> bool {
-    let mut p = path.to_path_buf();
-
-    while p.pop() {
-      if p == root {
-        return true;
-      }
-    }
-
-    false
-  }
-
-  pub fn in_workspace(&self, id: FileId) -> bool {
+  /// Returns `true` if the given file is in a namespace.
+  pub fn in_namespace(&self, id: FileId) -> bool {
     match self.files[&id].path {
       FilePath::Rooted { .. } => true,
       FilePath::Absolute(_) => false,
@@ -123,32 +117,11 @@ impl Files {
   pub fn id_to_absolute_path(&self, id: FileId) -> PathBuf {
     let file = self.files.get(&id).unwrap();
     match &file.path {
-      FilePath::Rooted { relative_path } => self.root.join(relative_path),
+      FilePath::Rooted { namespace, relative_path } => {
+        self.namespace_roots[&namespace].join(relative_path)
+      }
       FilePath::Absolute(path) => path.clone(),
     }
-  }
-
-  pub fn change_root(&mut self, new_root: PathBuf) {
-    self.file_lookup.clear();
-
-    for file in self.files.values_mut() {
-      let abs_path = match &file.path {
-        FilePath::Rooted { relative_path } => self.root.join(relative_path),
-        FilePath::Absolute(path) => path.clone(),
-      };
-
-      file.path = if Self::within_root_lookup(&new_root, &abs_path) {
-        FilePath::Rooted { relative_path: abs_path.strip_prefix(&new_root).unwrap().to_path_buf() }
-      } else {
-        FilePath::Absolute(abs_path.clone())
-      };
-    }
-
-    for (id, file) in &self.files {
-      self.file_lookup.insert(file.path.clone(), *id);
-    }
-
-    self.root = new_root;
   }
 }
 
@@ -158,9 +131,10 @@ mod tests {
 
   #[test]
   fn get_works() {
-    let mut files = Files::new("/foo".into());
+    let mut files = Files::new();
     let file = FileId::new_raw(0);
 
+    files.add_namespace("foo".into(), "/foo".into());
     let id = files.create(Path::new("/foo/bar"));
     files.write(id, FileContent::Json("bar".to_string()));
 
@@ -170,9 +144,10 @@ mod tests {
 
   #[test]
   fn get_works_with_no_root() {
-    let mut files = Files::new("/foo".into());
+    let mut files = Files::new();
     let file = FileId::new_raw(0);
 
+    files.add_namespace("foo".into(), "/foo".into());
     let id = files.create(Path::new("/foo/bar"));
     files.write(id, FileContent::Json("bar".to_string()));
 
@@ -182,7 +157,7 @@ mod tests {
 
   #[test]
   fn reindex_works() {
-    let mut files = Files::new("/".into());
+    let mut files = Files::new();
 
     let file_1 = files.create(Path::new("/foo/bar"));
     let file_2 = files.create(Path::new("/baz"));
@@ -190,9 +165,15 @@ mod tests {
     assert_eq!(files.files[&file_1].path, FilePath::Absolute(PathBuf::from("/foo/bar")));
     assert_eq!(files.files[&file_2].path, FilePath::Absolute(PathBuf::from("/baz")));
 
-    files.change_root("/foo".into());
+    files.add_namespace("foo".into(), "/foo".into());
 
-    assert_eq!(files.files[&file_1].path, FilePath::Rooted { relative_path: PathBuf::from("bar") });
+    assert_eq!(
+      files.files[&file_1].path,
+      FilePath::Rooted {
+        namespace:     Namespace("foo".into()),
+        relative_path: PathBuf::from("bar"),
+      }
+    );
     assert_eq!(files.files[&file_2].path, FilePath::Absolute(PathBuf::from("/baz")));
   }
 }

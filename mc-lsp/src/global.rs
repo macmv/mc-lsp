@@ -66,7 +66,7 @@ impl GlobalState {
     GlobalState {
       sender,
 
-      files: Arc::new(RwLock::new(Files::new(PathBuf::new()))),
+      files: Arc::new(RwLock::new(Files::new())),
 
       analysis_host: AnalysisHost::new(),
 
@@ -163,7 +163,7 @@ impl GlobalState {
     let snap = self.analysis_host.snapshot();
 
     for file_id in changes.iter().copied().chain(self.diagnostic_changes.drain(..)) {
-      if !files.in_workspace(file_id) {
+      if !files.in_namespace(file_id) {
         continue;
       }
       match files.read(file_id) {
