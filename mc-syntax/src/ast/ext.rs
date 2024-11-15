@@ -57,11 +57,13 @@ impl ast::Object {
   }
 }
 
+/// Best-effort parser: missing quotes will be ignored, invalid escapes will be
+/// ignored, etc.
 fn parse_text(text: &str) -> String {
   let mut out = String::new();
 
   let mut in_escape = false;
-  for c in text.strip_prefix("\"").unwrap().strip_suffix("\"").unwrap().chars() {
+  for c in text.strip_prefix("\"").unwrap_or(text).strip_suffix("\"").unwrap_or(text).chars() {
     match c {
       '\\' if !in_escape => in_escape = true,
       '\\' if in_escape => {
