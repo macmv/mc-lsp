@@ -128,8 +128,6 @@ impl Highlighter<'_> {
         }
       }
     }
-
-    // TODO
   }
 
   fn highlight<T: AstNode>(&mut self, node: T, kind: HighlightKind) {
