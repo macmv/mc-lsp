@@ -73,7 +73,10 @@ impl Validator<'_> {
 
   fn check_prop_list(&mut self, s: &str, syntax: SyntaxNode) {
     if s == "" {
-      self.diagnostics.error(syntax, "empty property list is not allowed");
+      self
+        .diagnostics
+        .error(syntax, "empty property list is not allowed")
+        .hint("use 'normal' instead");
       return;
     }
   }
