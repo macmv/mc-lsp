@@ -19,14 +19,7 @@ pub enum CompletionKind {
   Texture,
 }
 
-struct Completer<'a> {
-  #[allow(unused)]
-  db:    &'a dyn HirDatabase,
-  #[allow(unused)]
-  pos:   FileLocation,
-  #[allow(unused)]
-  model: &'a model::Model,
-
+struct Completer {
   current_path: Option<PrefixPath>,
 
   completions: Vec<Completion>,
@@ -103,8 +96,8 @@ pub fn blockstate_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Co
   vec![]
 }
 
-impl<'a> Completer<'a> {
-  pub fn new(db: &'a dyn HirDatabase, pos: FileLocation, model: &'a model::Model) -> Completer<'a> {
+impl Completer {
+  pub fn new(db: &dyn HirDatabase, pos: FileLocation, model: &model::Model) -> Completer {
     let node = db.node_at_index(pos).unwrap();
     let mut current_path = None;
 
@@ -143,7 +136,7 @@ impl<'a> Completer<'a> {
       }
     });
 
-    Completer { db, pos, model, current_path, completions: Vec::new() }
+    Completer { current_path, completions: Vec::new() }
   }
 
   pub fn complete_path(&mut self, path: &Path, kind: CompletionKind) {
