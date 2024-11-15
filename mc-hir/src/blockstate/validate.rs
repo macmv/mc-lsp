@@ -135,24 +135,15 @@ impl Validator<'_> {
       return;
     }
 
-    let mut i = 1; // Start at 1 to chop off the leading `"`.
     let mut prev_key = "";
     let mut seen = HashSet::new();
 
-    for prop in s.split(',') {
-      // FIXME: Need to handle escapes.
-      let span = TextRange::new(
-        syntax.text_range().start() + TextSize::from(i),
-        syntax.text_range().start() + TextSize::from(i + prop.len() as u32),
-      );
-
+    for (prop, span) in PropIter::new(s, &syntax) {
       if !prop.contains('=') {
         self
           .diagnostics
           .error(span, format!("invalid property `{}`", prop))
           .hint("properties should be in the form `key=value`");
-
-        i += prop.len() as u32 + 1;
         continue;
       }
 
@@ -188,8 +179,6 @@ impl Validator<'_> {
           .error(span, format!("invalid property value `{}`", value))
           .hint("property values may only contain lowercase letters or numbers");
       }
-
-      i += prop.len() as u32 + 1;
     }
   }
 
@@ -203,5 +192,41 @@ impl Validator<'_> {
       props.push(Prop { key: key.to_string(), value: value.to_string() });
     }
     props
+  }
+}
+
+pub struct PropIter<'a> {
+  s:      &'a str,
+  i:      u32,
+  offset: TextSize,
+}
+
+impl<'a> PropIter<'a> {
+  pub fn new(s: &'a str, syntax: &SyntaxNode) -> Self {
+    Self { s, i: 0, offset: syntax.text_range().start() + TextSize::from(1) }
+  }
+}
+
+impl<'a> Iterator for PropIter<'a> {
+  type Item = (&'a str, TextRange);
+
+  fn next(&mut self) -> Option<Self::Item> {
+    let mut i = self.i;
+    let prev = i;
+    while i < self.s.len() as u32 {
+      // FIXME: Need to handle escapes.
+      if self.s.as_bytes()[i as usize] == b',' {
+        break;
+      }
+      i += 1;
+    }
+    if i > self.i {
+      let range =
+        TextRange::new(TextSize::from(self.i) + self.offset, TextSize::new(i) + self.offset);
+      self.i = i + 1;
+      Some((&self.s[prev as usize..i as usize], range))
+    } else {
+      None
+    }
   }
 }
