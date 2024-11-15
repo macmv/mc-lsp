@@ -227,6 +227,7 @@ pub fn semantic_tokens_legend() -> lsp_types::SemanticTokensLegend {
         SemanticTokenType::new("number")
       }
       HighlightKind::Texture => SemanticTokenType::new("string"),
+      HighlightKind::Model => SemanticTokenType::new("class"),
       HighlightKind::Variable => SemanticTokenType::new("variable"),
     }
   }

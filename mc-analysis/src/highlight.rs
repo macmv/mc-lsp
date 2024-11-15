@@ -1,4 +1,4 @@
-use mc_hir::{model, HirDatabase};
+use mc_hir::{blockstate, model, HirDatabase};
 use mc_source::{FileId, TextRange};
 use mc_syntax::ast::AstNode;
 
@@ -34,6 +34,9 @@ pub enum HighlightKind {
 
   /// A texture path.
   Texture,
+
+  /// A model path.
+  Model,
 
   /// Local variables.
   // Keep last!
@@ -95,7 +98,17 @@ impl Highlighter<'_> {
 
   fn highlight_blockstate(&mut self) {
     let ast = self.db.parse_json(self.file);
-    let (model, source_map, _) = self.db.parse_blockstate_with_source_map(self.file);
+    let (blockstate, source_map, _) = self.db.parse_blockstate_with_source_map(self.file);
+
+    for (id, node) in blockstate.nodes.iter() {
+      match node {
+        blockstate::Node::Model(_) => {
+          self.highlight(source_map.models[&id].tree(&ast), HighlightKind::Model);
+        }
+
+        _ => {}
+      }
+    }
 
     // TODO
   }
