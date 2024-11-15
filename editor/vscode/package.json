@@ -8,7 +8,8 @@
   },
   "categories": [],
   "activationEvents": [
-    "onLanguage:mcmodel"
+    "onLanguage:mc-model",
+    "onLanguage:mc-blockstate"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -20,12 +21,21 @@
     ],
     "languages": [
       {
-        "id": "mcmodel",
+        "id": "mc-model",
         "aliases": [
           "Minecraft Model"
         ],
         "filenamePatterns": [
           "**/assets/*/models/**/*.json"
+        ]
+      },
+      {
+        "id": "mc-blockstate",
+        "aliases": [
+          "Minecraft Blockstate"
+        ],
+        "filenamePatterns": [
+          "**/assets/*/blockstates/**/*.json"
         ]
       }
     ]

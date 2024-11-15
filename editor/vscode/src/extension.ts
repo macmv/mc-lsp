@@ -77,7 +77,11 @@ export async function activate(context: vscode.ExtensionContext) {
     documentSelector: [
       {
         scheme: "file",
-        language: "mcmodel",
+        language: "mc-model",
+      },
+      {
+        scheme: "file",
+        language: "mc-blockstate",
       },
     ],
     outputChannel: vscode.window.createOutputChannel("MC LSP"),
@@ -85,7 +89,7 @@ export async function activate(context: vscode.ExtensionContext) {
   };
 
   client = new LanguageClient(
-    "mclsp",
+    "mc-lsp",
     "MC LSP",
 
     serverOptions,
