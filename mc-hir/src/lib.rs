@@ -5,7 +5,7 @@ use diagnostic::Diagnostics;
 use mc_source::{FileId, FileLocation, FileRange, ModelPath, ResolvedPath, SourceDatabase};
 use mc_syntax::{
   ast::{self, AstNode},
-  AstPtr, T,
+  AstPtr, SyntaxToken, T,
 };
 use model::Model;
 
@@ -79,19 +79,8 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
 }
 
 fn model_node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<model::NodeId> {
-  let ast = db.parse_json(pos.file);
+  let token = token_at_offset(db, pos);
   let (_, source_map, _) = db.parse_model_with_source_map(pos.file);
-
-  let token = ast
-    .syntax_node()
-    .token_at_offset(pos.index)
-    .max_by_key(|token| match token.kind() {
-      T![string] => 10,
-      T![number] => 9,
-
-      _ => 1,
-    })
-    .unwrap();
 
   token.parent_ancestors().find_map(|node| match node.kind() {
     k if ast::Value::can_cast(k) => {
@@ -106,21 +95,9 @@ fn model_node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<model:
   })
 }
 
-// FIXME: Dedupe with the model's version.
 fn blockstate_node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<blockstate::NodeId> {
-  let ast = db.parse_json(pos.file);
+  let token = token_at_offset(db, pos);
   let (_, source_map, _) = db.parse_blockstate_with_source_map(pos.file);
-
-  let token = ast
-    .syntax_node()
-    .token_at_offset(pos.index)
-    .max_by_key(|token| match token.kind() {
-      T![string] => 10,
-      T![number] => 9,
-
-      _ => 1,
-    })
-    .unwrap();
 
   token.parent_ancestors().find_map(|node| match node.kind() {
     k if ast::Value::can_cast(k) => {
@@ -131,6 +108,22 @@ fn blockstate_node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<b
   })
 }
 
+fn token_at_offset(db: &dyn HirDatabase, pos: FileLocation) -> SyntaxToken {
+  let ast = db.parse_json(pos.file);
+
+  ast
+    .syntax_node()
+    .token_at_offset(pos.index)
+    .max_by_key(|token| match token.kind() {
+      T![string] => 10,
+      T![number] => 9,
+
+      _ => 1,
+    })
+    .unwrap()
+}
+
+// FIXME: Dedupe with the model's version.
 fn model_def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
   let node = db.model_node_at_index(pos)?;
 

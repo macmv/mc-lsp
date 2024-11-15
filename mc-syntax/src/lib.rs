@@ -13,7 +13,7 @@ use node::Mc;
 use rowan::{GreenNode, TextSize};
 
 pub use mc_parser::{SyntaxKind, T};
-pub use node::SyntaxNode;
+pub use node::{SyntaxNode, SyntaxToken};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Parse<T> {
