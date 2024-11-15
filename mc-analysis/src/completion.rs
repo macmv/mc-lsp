@@ -93,10 +93,28 @@ pub fn model_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Complet
 }
 
 pub fn blockstate_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
-  let Some(_node) = db.node_at_index(pos) else { return vec![] };
-  let _model = db.parse_blockstate(pos.file);
+  let Some(node) = db.blockstate_node_at_index(pos) else { return vec![] };
+  let blockstate = db.parse_blockstate(pos.file);
 
-  vec![]
+  let mut completer = Completer::new_blockstate(db, pos, &blockstate);
+
+  match blockstate.nodes[node] {
+    blockstate::Node::Model(_) => {
+      for n in db.workspace().namespaces.iter() {
+        for f in n.files.iter() {
+          if let Some(ResolvedPath::Model(mut path)) = f.resolved_path() {
+            // Blockstates implicitly add the 'block' element at the root of the path.
+            path.path.segments.remove(0);
+            completer.complete_path(&path.path, CompletionKind::Model);
+          }
+        }
+      }
+    }
+
+    _ => {}
+  }
+
+  completer.completions
 }
 
 impl Completer {
