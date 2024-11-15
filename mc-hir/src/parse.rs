@@ -84,4 +84,13 @@ impl<'a> Parser<'a> {
       }
     }
   }
+
+  pub fn warn_unknown_key(&mut self, key: ast::Key) {
+    let element = ast::Element::cast(key.syntax().parent().unwrap()).unwrap();
+
+    self
+      .diagnostics
+      .warn(key.syntax(), format!("unknown key `{key}`"))
+      .suggest_remove("remove the unknown key", element.syntax().text_range());
+  }
 }

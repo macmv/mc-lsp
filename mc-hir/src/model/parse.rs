@@ -40,9 +40,7 @@ impl ModelParser<'_> {
         "elements" => self.parse_elements(value),
         "gui_light" => {}
         "display" => {}
-        _ => {
-          self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`"));
-        }
+        _ => self.parser.warn_unknown_key(key),
       }
     }
   }
@@ -84,9 +82,7 @@ impl ModelParser<'_> {
         "to" => element.to = self.parse_pos(value),
         "faces" => element.faces = self.parse_faces(value),
         "rotation" => {}
-        _ => {
-          self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`"));
-        }
+        _ => self.parser.warn_unknown_key(key),
       }
     }
 
@@ -136,9 +132,7 @@ impl ModelParser<'_> {
         "west" => faces.west = Some(face),
         "up" => faces.up = Some(face),
         "down" => faces.down = Some(face),
-        _ => {
-          self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`"));
-        }
+        _ => self.parser.warn_unknown_key(key),
       }
     }
 
@@ -181,9 +175,7 @@ impl ModelParser<'_> {
           // TODO: Store this, and then tint the thing green.
           self.parser.int(&value);
         }
-        _ => {
-          self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`"));
-        }
+        _ => self.parser.warn_unknown_key(key),
       }
     }
 
