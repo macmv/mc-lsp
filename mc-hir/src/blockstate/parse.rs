@@ -1,6 +1,4 @@
-use std::collections::HashSet;
-
-use crate::diagnostic::Diagnostics;
+use crate::{diagnostic::Diagnostics, parse::Parser};
 use mc_source::{ModelPath, Path};
 use mc_syntax::{
   ast::{self, AstNode},
@@ -9,30 +7,30 @@ use mc_syntax::{
 
 use super::*;
 
-struct Parser<'a> {
-  blockstate:  &'a mut Blockstate,
-  source_map:  &'a mut BlockstateSourceMap,
-  diagnostics: &'a mut Diagnostics,
+struct BlockstateParser<'a> {
+  parser:     Parser<'a>,
+  blockstate: &'a mut Blockstate,
+  source_map: &'a mut BlockstateSourceMap,
 }
 
 pub fn parse(
-  model: &mut Blockstate,
+  blockstate: &mut Blockstate,
   source_map: &mut BlockstateSourceMap,
   diagnostics: &mut Diagnostics,
   json: &Json,
 ) {
-  let mut parser = Parser { blockstate: model, source_map, diagnostics };
+  let mut parser = BlockstateParser { parser: Parser::new(diagnostics), blockstate, source_map };
   parser.parse_root(json);
 }
 
-impl Parser<'_> {
+impl BlockstateParser<'_> {
   fn parse_root(&mut self, json: &ast::Json) {
     let Some(root) = json.value() else { return };
-    let Some(obj) = self.parse_object(root) else { return };
+    let Some(obj) = self.parser.object(root) else { return };
     for (key, value) in obj.iter() {
       match key.parse_text().as_str() {
         "variants" => {
-          let Some(variants) = self.parse_object(value) else { continue };
+          let Some(variants) = self.parser.object(value) else { continue };
           for element in variants.elements() {
             let Some(key) = element.key().map(|k| k.parse_text()) else { continue };
             let Some(value) = element.value() else { continue };
@@ -42,7 +40,7 @@ impl Parser<'_> {
             }
           }
         }
-        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+        _ => self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
     }
   }
@@ -56,13 +54,13 @@ impl Parser<'_> {
       uvlock: None,
     };
 
-    let obj = self.parse_object(e)?;
+    let obj = self.parser.object(e)?;
     for (key, value) in obj.iter() {
       match key.parse_text().as_str() {
-        "x" => variant.x = Some(F64Eq(self.float(&value)?)),
-        "y" => variant.y = Some(F64Eq(self.float(&value)?)),
+        "x" => variant.x = Some(F64Eq(self.parser.float(&value)?)),
+        "y" => variant.y = Some(F64Eq(self.parser.float(&value)?)),
         "model" => variant.model = self.parse_path(value)?,
-        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+        _ => self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
     }
 
@@ -71,42 +69,10 @@ impl Parser<'_> {
 
   fn parse_path(&mut self, p: ast::Value) -> Option<ModelPath> {
     let Some(path) = p.as_str() else {
-      self.diagnostics.error(p.syntax(), "expected string");
+      self.parser.diagnostics.error(p.syntax(), "expected string");
       return None;
     };
     Some(ModelPath { path: path.parse().ok()? })
-  }
-
-  fn parse_object(&mut self, object: ast::Value) -> Option<ast::Object> {
-    match object {
-      ast::Value::Object(obj) => {
-        let mut keys = HashSet::new();
-
-        for elem in obj.elements() {
-          let Some(key) = elem.key() else { continue };
-          let key_str = key.parse_text();
-          if !keys.insert(key_str.clone()) {
-            self.diagnostics.error(key.syntax(), "duplicate key");
-          }
-        }
-
-        Some(obj)
-      }
-      _ => {
-        self.diagnostics.error(object.syntax(), "expected object");
-        None
-      }
-    }
-  }
-
-  fn float(&mut self, p: &ast::Value) -> Option<f64> {
-    match p.as_f64() {
-      Some(n) => Some(n),
-      None => {
-        self.diagnostics.error(p.syntax(), "expected float");
-        None
-      }
-    }
   }
 
   fn alloc<T: BlockstateNode>(&mut self, elem: T::Ast, node: T) -> NodeId {
@@ -117,13 +83,13 @@ impl Parser<'_> {
 trait BlockstateNode {
   type Ast;
 
-  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId;
+  fn alloc(self, elem: &Self::Ast, parser: &mut BlockstateParser) -> NodeId;
 }
 
 impl BlockstateNode for Variant {
   type Ast = ast::Element;
 
-  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
+  fn alloc(self, elem: &Self::Ast, parser: &mut BlockstateParser) -> NodeId {
     let id = parser.blockstate.nodes.alloc(Node::Variant(self));
     parser.source_map.variants.insert(id, AstPtr::new(&elem));
     parser.source_map.ast_variants.insert(AstPtr::new(&elem), id);

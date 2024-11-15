@@ -12,6 +12,7 @@ use model::Model;
 pub mod blockstate;
 pub mod diagnostic;
 pub mod model;
+mod parse;
 
 #[allow(unused_imports)]
 #[macro_use]

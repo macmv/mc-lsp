@@ -1,4 +1,4 @@
-use crate::diagnostic::Diagnostics;
+use crate::{diagnostic::Diagnostics, parse::Parser};
 use la_arena::RawIdx;
 use mc_source::ModelPath;
 use mc_syntax::{
@@ -8,10 +8,10 @@ use mc_syntax::{
 
 use super::*;
 
-struct Parser<'a> {
-  model:       &'a mut Model,
-  source_map:  &'a mut ModelSourceMap,
-  diagnostics: &'a mut Diagnostics,
+struct ModelParser<'a> {
+  parser:     Parser<'a>,
+  model:      &'a mut Model,
+  source_map: &'a mut ModelSourceMap,
 }
 
 pub fn parse(
@@ -20,14 +20,14 @@ pub fn parse(
   diagnostics: &mut Diagnostics,
   json: &Json,
 ) {
-  let mut parser = Parser { model, source_map, diagnostics };
+  let mut parser = ModelParser { parser: Parser::new(diagnostics), model, source_map };
   parser.parse_root(json);
 }
 
-impl Parser<'_> {
+impl ModelParser<'_> {
   fn parse_root(&mut self, json: &ast::Json) {
     let Some(root) = json.value() else { return };
-    let Some(obj) = self.parse_object(root) else { return };
+    let Some(obj) = self.parser.object(root) else { return };
     for (key, value) in obj.iter() {
       match key.parse_text().as_str() {
         "parent" => {
@@ -40,25 +40,25 @@ impl Parser<'_> {
         "elements" => self.parse_elements(value),
         "gui_light" => {}
         "display" => {}
-        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+        _ => self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
     }
   }
 
   fn parse_path(&mut self, p: ast::Value) -> Option<ModelPath> {
     let Some(path) = p.as_str() else {
-      self.diagnostics.error(p.syntax(), "expected string");
+      self.parser.diagnostics.error(p.syntax(), "expected string");
       return None;
     };
     Some(ModelPath { path: path.parse().ok()? })
   }
 
   fn parse_textures(&mut self, textures: ast::Value) {
-    let Some(obj) = self.parse_object(textures) else { return };
+    let Some(obj) = self.parser.object(textures) else { return };
     for element in obj.elements() {
       let Some(key) = element.key().map(|k| k.parse_text()) else { continue };
       let Some(value) = element.value() else { continue };
-      let Some(texture) = self.str(&value) else { continue };
+      let Some(texture) = self.parser.string(&value) else { continue };
 
       self.alloc(element, TextureDef { name: key, value: texture.to_string() });
     }
@@ -75,14 +75,14 @@ impl Parser<'_> {
   fn parse_element(&mut self, e: ast::Value) -> Option<NodeId> {
     let mut element = Element::default();
 
-    let obj = self.parse_object(e)?;
+    let obj = self.parser.object(e)?;
     for (key, value) in obj.iter() {
       match key.parse_text().as_str() {
         "from" => element.from = self.parse_pos(value),
         "to" => element.to = self.parse_pos(value),
         "faces" => element.faces = self.parse_faces(value),
         "rotation" => {}
-        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+        _ => self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
     }
 
@@ -95,7 +95,7 @@ impl Parser<'_> {
     match p {
       ast::Value::Array(ref elems) if elems.values().count() == 3 => {
         for (i, elem) in elems.values().enumerate().take(3) {
-          let Some(n) = self.float(&elem) else { continue };
+          let Some(n) = self.parser.float(&elem) else { continue };
 
           match i {
             0 => pos.x = n.into(),
@@ -107,11 +107,11 @@ impl Parser<'_> {
       }
 
       ast::Value::Array(ref elems) => {
-        self.diagnostics.error(elems.syntax(), "expected 3 elements");
+        self.parser.diagnostics.error(elems.syntax(), "expected 3 elements");
       }
 
       _ => {
-        self.diagnostics.error(p.syntax(), "expected array");
+        self.parser.diagnostics.error(p.syntax(), "expected array");
       }
     }
 
@@ -121,7 +121,7 @@ impl Parser<'_> {
   fn parse_faces(&mut self, f: ast::Value) -> Faces {
     let mut faces = Faces::default();
 
-    let Some(obj) = self.parse_object(f) else { return faces };
+    let Some(obj) = self.parser.object(f) else { return faces };
     for (key, value) in obj.iter() {
       let Some(face) = self.parse_face(value) else { continue };
 
@@ -132,7 +132,7 @@ impl Parser<'_> {
         "west" => faces.west = Some(face),
         "up" => faces.up = Some(face),
         "down" => faces.down = Some(face),
-        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+        _ => self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
     }
 
@@ -145,21 +145,21 @@ impl Parser<'_> {
       texture: NodeId::from_raw(RawIdx::from_u32(0)),
     };
 
-    let obj = self.parse_object(f)?;
+    let obj = self.parser.object(f)?;
 
     for (key, value) in obj.iter() {
       match key.parse_text().as_str() {
         "uv" => {
-          if let Some(arr) = self.arr(value) {
+          if let Some(arr) = self.parser.array(value) {
             for (i, item) in arr.values().enumerate() {
-              face.uv[i] = self.float(&item).unwrap_or_default().into();
+              face.uv[i] = self.parser.float(&item).unwrap_or_default().into();
             }
           }
         }
         "rotation" => {
-          if let Some(n) = self.int(&value) {
+          if let Some(n) = self.parser.int(&value) {
             if n % 45 != 0 {
-              self.diagnostics.error(value.syntax(), "rotation must be a multiple of 45");
+              self.parser.diagnostics.error(value.syntax(), "rotation must be a multiple of 45");
             }
           }
         }
@@ -173,72 +173,13 @@ impl Parser<'_> {
         "cullface" => {}
         "tintindex" => {
           // TODO: Store this, and then tint the thing green.
-          self.int(&value);
+          self.parser.int(&value);
         }
-        _ => self.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
+        _ => self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`")),
       }
     }
 
     Some(self.alloc(obj, face))
-  }
-
-  fn parse_object(&mut self, object: ast::Value) -> Option<ast::Object> {
-    match object {
-      ast::Value::Object(obj) => {
-        let mut keys = HashSet::new();
-
-        for elem in obj.elements() {
-          let Some(key) = elem.key() else { continue };
-          let key_str = key.parse_text();
-          if !keys.insert(key_str.clone()) {
-            self.diagnostics.error(key.syntax(), "duplicate key");
-          }
-        }
-
-        Some(obj)
-      }
-      _ => {
-        self.diagnostics.error(object.syntax(), "expected object");
-        None
-      }
-    }
-  }
-
-  fn arr(&mut self, p: ast::Value) -> Option<ast::Array> {
-    match p {
-      ast::Value::Array(arr) => Some(arr),
-      _ => {
-        self.diagnostics.error(p.syntax(), "expected array");
-        None
-      }
-    }
-  }
-  fn float(&mut self, p: &ast::Value) -> Option<f64> {
-    match p.as_f64() {
-      Some(n) => Some(n),
-      None => {
-        self.diagnostics.error(p.syntax(), "expected float");
-        None
-      }
-    }
-  }
-  fn int(&mut self, p: &ast::Value) -> Option<i64> {
-    match p.as_i64() {
-      Some(n) => Some(n),
-      None => {
-        self.diagnostics.error(p.syntax(), "expected integer");
-        None
-      }
-    }
-  }
-  fn str(&mut self, p: &ast::Value) -> Option<String> {
-    match p.as_str() {
-      Some(s) => Some(s),
-      None => {
-        self.diagnostics.error(p.syntax(), "expected string");
-        None
-      }
-    }
   }
 
   fn alloc<T: ModelNode>(&mut self, elem: T::Ast, node: T) -> NodeId { node.alloc(&elem, self) }
@@ -247,13 +188,13 @@ impl Parser<'_> {
 trait ModelNode {
   type Ast;
 
-  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId;
+  fn alloc(self, elem: &Self::Ast, parser: &mut ModelParser) -> NodeId;
 }
 
 impl ModelNode for Parent {
   type Ast = ast::Value;
 
-  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
+  fn alloc(self, elem: &Self::Ast, parser: &mut ModelParser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::Parent(self));
     parser.source_map.parent.insert(id, AstPtr::new(&elem));
     parser.source_map.ast_values.insert(AstPtr::new(&elem), id);
@@ -264,7 +205,7 @@ impl ModelNode for Parent {
 impl ModelNode for TextureDef {
   type Ast = ast::Element;
 
-  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
+  fn alloc(self, elem: &Self::Ast, parser: &mut ModelParser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::TextureDef(self));
     parser.model.texture_defs.push(id);
     parser.source_map.texture_defs.insert(id, AstPtr::new(&elem));
@@ -276,7 +217,7 @@ impl ModelNode for TextureDef {
 impl ModelNode for Element {
   type Ast = ast::Object;
 
-  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
+  fn alloc(self, elem: &Self::Ast, parser: &mut ModelParser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::Element(self));
     parser.source_map.elements.insert(id, AstPtr::new(&elem));
     id
@@ -286,7 +227,7 @@ impl ModelNode for Element {
 impl ModelNode for Face {
   type Ast = ast::Object;
 
-  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
+  fn alloc(self, elem: &Self::Ast, parser: &mut ModelParser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::Face(self));
     parser.source_map.elements.insert(id, AstPtr::new(&elem));
     id
@@ -296,7 +237,7 @@ impl ModelNode for Face {
 impl ModelNode for Texture {
   type Ast = ast::Value;
 
-  fn alloc(self, elem: &Self::Ast, parser: &mut Parser) -> NodeId {
+  fn alloc(self, elem: &Self::Ast, parser: &mut ModelParser) -> NodeId {
     let id = parser.model.nodes.alloc(Node::Texture(self));
     parser.source_map.textures.insert(id, AstPtr::new(&elem));
     parser.source_map.ast_values.insert(AstPtr::new(&elem), id);
