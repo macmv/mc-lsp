@@ -143,7 +143,7 @@ impl GlobalState {
       for namespace in &workspace.namespaces {
         for file in &namespace.files {
           if let FileContent::Json(text) = files.read(file.id) {
-            self.analysis_host.change(mc_analysis::Change { file: file.id, text });
+            self.analysis_host.add_file(file.id, file.ty, text);
           }
         }
       }
@@ -163,6 +163,9 @@ impl GlobalState {
     let snap = self.analysis_host.snapshot();
 
     for file_id in changes.iter().copied().chain(self.diagnostic_changes.drain(..)) {
+      if !files.in_workspace(file_id) {
+        continue;
+      }
       match files.read(file_id) {
         FileContent::Json(_) => {}
         FileContent::Png(_) => continue,

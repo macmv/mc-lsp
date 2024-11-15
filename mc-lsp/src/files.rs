@@ -113,6 +113,13 @@ impl Files {
     false
   }
 
+  pub fn in_workspace(&self, id: FileId) -> bool {
+    match self.files[&id].path {
+      FilePath::Rooted { .. } => true,
+      FilePath::Absolute(_) => false,
+    }
+  }
+
   pub fn id_to_absolute_path(&self, id: FileId) -> PathBuf {
     let file = self.files.get(&id).unwrap();
     match &file.path {

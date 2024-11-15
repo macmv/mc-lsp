@@ -2,7 +2,7 @@
 
 use std::{io, path, path::PathBuf};
 
-use mc_source::{File, Path, Workspace};
+use mc_source::{File, FileType, Path, Workspace};
 
 use crate::files::{FileContent, Files};
 
@@ -54,22 +54,29 @@ fn discover_sources(
         relative.segments.push(segment.to_string_lossy().to_string());
       }
 
+      let ty = match relative.segments.get(1).map(|s| s.as_str()) {
+        Some("models") => FileType::Model,
+        Some("blockstates") => FileType::Blockstate,
+        _ => continue,
+      };
+
       match files.get_absolute(&path) {
         Some(id) => {
-          sources.push(File { id, path: relative.into() });
+          sources.push(File { id, ty, path: relative.into() });
         }
         None => match r.extension() {
           Some(ext) if ext == "json" => {
             let id = files.create(&path);
             let content = std::fs::read_to_string(&path)?;
             files.write(id, FileContent::Json(content));
-            sources.push(File { id, path: relative.into() });
+            sources.push(File { id, ty, path: relative.into() });
           }
           Some(ext) if ext == "png" => {
             let id = files.create(&path);
             let content = std::fs::read(&path)?;
             files.write(id, FileContent::Png(content));
-            sources.push(File { id, path: relative.into() });
+            // FIXME: This `ty` shouldn't exist on textures.
+            sources.push(File { id, ty: FileType::Model, path: relative.into() });
           }
           _ => {}
         },
