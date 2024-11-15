@@ -132,7 +132,7 @@ impl Parser<'_> {
           break SyntaxKind::EOF;
         }
         Err(e) => {
-          self.error(e.to_string());
+          self.events.push(Event::Error { msg: e.to_string(), len: 1 });
           break SyntaxKind::__LAST;
         }
       }
@@ -140,7 +140,7 @@ impl Parser<'_> {
   }
 
   pub fn error(&mut self, msg: impl Into<String>) {
-    self.events.push(Event::Error { msg: msg.into() })
+    self.events.push(Event::Error { msg: msg.into(), len: 0 })
   }
 }
 

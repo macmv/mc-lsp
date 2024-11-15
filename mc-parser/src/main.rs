@@ -50,7 +50,7 @@ fn parse_file(name: &str) -> Result<(), ()> {
         }
         index += len;
       }
-      Event::Error { msg } => {
+      Event::Error { msg, .. } => {
         println!("error: {msg}");
 
         let ln = line + 1;

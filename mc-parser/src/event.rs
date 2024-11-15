@@ -62,6 +62,7 @@ pub enum Event {
 
   Error {
     msg: String,
+    len: usize,
   },
 }
 
@@ -113,7 +114,7 @@ pub fn process_events(events: &mut [Event]) -> Vec<Event> {
           out.push(Event::Token { kind, len });
         }
       }
-      Event::Error { msg } => out.push(Event::Error { msg }),
+      Event::Error { msg, len } => out.push(Event::Error { msg, len }),
     }
   }
 
@@ -148,8 +149,14 @@ impl fmt::Display for Events<'_> {
           writeln!(f, " '{}'", str.replace('\n', "\\n"))?;
           index += len;
         }
-        Event::Error { msg } => {
-          writeln!(f, "{}error: {}", "  ".repeat(indent), msg)?;
+        Event::Error { msg, len } => {
+          write!(f, "{}error: {}", "  ".repeat(indent), msg)?;
+          if *len > 0 {
+            let str = &self.1[index..index + len];
+            write!(f, " '{}'", str.replace('\n', "\\n"))?;
+          }
+          writeln!(f)?;
+          index += len;
         }
       }
     }

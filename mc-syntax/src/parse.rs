@@ -25,7 +25,14 @@ fn build_tree(events: Vec<mc_parser::Event>, source: &str) -> (GreenNode, Vec<Sy
       }
       Event::Start { kind, .. } => builder.start_node(kind),
       Event::Finish => builder.finish_node(),
-      Event::Error { msg } => builder.error(msg.to_string(), index.try_into().unwrap()),
+      Event::Error { msg, len } => {
+        builder.error(msg.to_string(), index.try_into().unwrap());
+        if len > 0 {
+          // FIXME: Add a syntax kind for errors.
+          builder.token(SyntaxKind::__LAST, &source[index..index + len]);
+        }
+        index += len;
+      }
     }
   }
 

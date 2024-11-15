@@ -26,7 +26,7 @@ fn grammar_inline_tests() {
     let events = lex_events(crate::EntryPoint::Json, &format!("{}\n", test.src));
     for event in &events {
       match event {
-        Event::Error { msg } => found_error = Some(msg),
+        Event::Error { msg, .. } => found_error = Some(msg),
         _ => {}
       }
     }

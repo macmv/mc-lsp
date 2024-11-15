@@ -108,13 +108,60 @@ fn missing_quote_in_string() {
             KEY
               STRING '"p"'
             COLON ':'
-            error: invalid character
+            error: invalid character ' '
             error: expected value
-            WHITESPACE ' '
-            STRING 'b",  '
-            error: invalid character
+            WHITESPACE 'b'
+            STRING '",  "'
+            error: invalid character 't'
             error: expected comma or end of object
-          EOF '"t": '
+          EOF '": 33'
+    "#],
+  );
+}
+
+#[test]
+fn missing_key_quote() {
+  check(
+    r#"{
+      "foo": 3,
+      bar: 4,
+      "baz": 5
+    }"#,
+    expect![@r#"
+      JSON
+        OBJECT
+          OPEN_CURLY '{'
+          WHITESPACE '\n      '
+          ELEMENT
+            KEY
+              STRING '"foo"'
+            COLON ':'
+            WHITESPACE ' '
+            NUMBER_VALUE
+              NUMBER '3'
+            COMMA ','
+            error: invalid character '\n'
+          WHITESPACE '      b'
+          ELEMENT
+            error: expected string
+            error: invalid character 'a'
+            error: expected colon
+            error: expected value
+            error: invalid character 'r'
+            COLON ':'
+            WHITESPACE ' '
+            NUMBER '4'
+            COMMA ','
+          WHITESPACE '\n      '
+          ELEMENT
+            KEY
+              STRING '"baz"'
+            COLON ':'
+            WHITESPACE ' '
+            NUMBER_VALUE
+              NUMBER '5'
+          WHITESPACE '\n    '
+          CLOSE_CURLY '}'
     "#],
   );
 }
