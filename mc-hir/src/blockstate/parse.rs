@@ -59,9 +59,10 @@ impl BlockstateParser<'_> {
     let obj = self.parser.object(e)?;
     for (key, value) in obj.iter() {
       match key.parse_text().as_str() {
+        "model" => variant.model = self.parse_path(value)?,
         "x" => variant.x = Some(F64Eq(self.parser.float(&value)?)),
         "y" => variant.y = Some(F64Eq(self.parser.float(&value)?)),
-        "model" => variant.model = self.parse_path(value)?,
+        "uvlock" => variant.uvlock = Some(self.parser.bool(&value)?),
         _ => {
           self.parser.diagnostics.warn(key.syntax(), format!("unknown key `{key}`"));
         }

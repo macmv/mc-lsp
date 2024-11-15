@@ -65,6 +65,16 @@ impl<'a> Parser<'a> {
     }
   }
 
+  pub fn bool(&mut self, p: &ast::Value) -> Option<bool> {
+    match p.as_bool() {
+      Some(n) => Some(n),
+      None => {
+        self.diagnostics.error(p.syntax(), "expected boolean");
+        None
+      }
+    }
+  }
+
   pub fn string(&mut self, p: &ast::Value) -> Option<String> {
     match p.as_str() {
       Some(s) => Some(s),
