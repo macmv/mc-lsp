@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use mc_hir::{blockstate, model, HirDatabase};
 use mc_source::{FileLocation, FileType, Path, ResolvedPath};
 use mc_syntax::{
@@ -43,10 +45,13 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
 }
 
 pub fn model_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
-  let Some(node) = db.model_node_at_index(pos) else { return vec![] };
+  let keyword_completions = model_keyword_completions(db, pos);
+
+  let Some(node) = db.model_node_at_index(pos) else { return keyword_completions };
   let model = db.parse_model(pos.file);
 
   let mut completer = Completer::new_model(db, pos, &model);
+  completer.completions.extend(keyword_completions);
 
   match model.nodes[node] {
     model::Node::Parent(_) => {
@@ -90,6 +95,65 @@ pub fn model_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Complet
   }
 
   completer.completions
+}
+
+fn model_keyword_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
+  let token = mc_hir::token_at_offset(db, pos);
+
+  let Some(parent) = token.parent() else { return vec![] };
+  dbg!(&parent);
+
+  // Exclude keys that have already been defined.
+  let mut exclude = HashSet::new();
+  if let Some(key) = ast::Key::cast(parent.clone()) {
+    let element = ast::Element::cast(key.syntax().parent().unwrap()).unwrap();
+    let obj = ast::Object::cast(element.syntax().parent().unwrap()).unwrap();
+    for (key, _) in obj.iter() {
+      exclude.insert(key.parse_text());
+    }
+  } else if let Some(obj) = ast::Object::cast(parent.clone()) {
+    for (key, _) in obj.iter() {
+      exclude.insert(key.parse_text());
+    }
+  }
+
+  let mut path = vec![];
+  for n in token.parent_ancestors() {
+    if let Some(element) = ast::Element::cast(n) {
+      if let Some(key) = element.key() {
+        path.push(key.parse_text());
+      }
+    }
+  }
+
+  path.reverse();
+
+  // Exclude the current key if we're completing within a key.
+  if parent.kind() == ast::SyntaxKind::KEY {
+    path.pop();
+  }
+
+  let strs = path.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+  let keywords: &[&str] = match strs.as_slice() {
+    [] => &["parent", "textures", "elements"],
+    ["elements"] => &["from", "to", "rotation", "faces"],
+    ["elements", "faces"] => &["north", "south", "east", "west", "up", "down"],
+    ["elements", "faces", _] => &["uv", "texture", "tintindex"],
+    ["textures"] => &["particle"],
+    _ => &[],
+  };
+
+  keywords
+    .iter()
+    .filter(|&&k| !exclude.contains(k))
+    .map(|s| Completion {
+      label:       format!("\"{}\"", s),
+      kind:        CompletionKind::Namespace,
+      description: s.to_string(),
+      retrigger:   true,
+      insert:      format!("\"{}\": ", s.to_string()),
+    })
+    .collect()
 }
 
 pub fn blockstate_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {

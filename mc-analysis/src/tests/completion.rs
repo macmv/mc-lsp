@@ -56,3 +56,58 @@ fn complete_parent() {
     "#],
   );
 }
+
+#[test]
+fn complete_keys() {
+  complete(
+    r#"{
+      |
+    }"#,
+    expect![@r#"
+      "parent"    parent
+      "textures"  textures
+      "elements"  elements
+    "#],
+  );
+
+  complete(
+    r#"{
+      "elements": [
+        {
+          |
+        }
+      ]
+    }"#,
+    expect![@r#"
+      "from"      from
+      "to"        to
+      "rotation"  rotation
+      "faces"     faces
+    "#],
+  );
+}
+
+#[test]
+fn excludes_existing_keys() {
+  complete(
+    r#"{
+      |
+      "elements": [{}]
+    }"#,
+    expect![@r#"
+      "parent"    parent
+      "textures"  textures
+    "#],
+  );
+
+  complete(
+    r#"{
+      "foo|": 0,
+      "elements": [{}]
+    }"#,
+    expect![@r#"
+      "parent"    parent
+      "textures"  textures
+    "#],
+  );
+}

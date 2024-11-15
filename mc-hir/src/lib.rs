@@ -108,7 +108,7 @@ fn blockstate_node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<b
   })
 }
 
-fn token_at_offset(db: &dyn HirDatabase, pos: FileLocation) -> SyntaxToken {
+pub fn token_at_offset(db: &dyn HirDatabase, pos: FileLocation) -> SyntaxToken {
   let ast = db.parse_json(pos.file);
 
   ast
