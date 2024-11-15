@@ -1,7 +1,4 @@
-use std::{
-  collections::{HashMap, HashSet},
-  sync::Arc,
-};
+use std::collections::{HashMap, HashSet};
 
 use mc_source::{FileId, TextRange, TextSize};
 use mc_syntax::{Json, Parse, SyntaxNode};
@@ -10,15 +7,8 @@ use crate::{diagnostic::Diagnostics, HirDatabase};
 
 use super::{Blockstate, BlockstateSourceMap, Node};
 
-struct ModelValidator<'a> {
-  db:         &'a dyn HirDatabase,
-  blockstate: Arc<Blockstate>,
-}
-
 struct Validator<'a> {
-  db:      &'a dyn HirDatabase,
-  model:   &'a Blockstate,
-  file_id: FileId,
+  blockstate: &'a Blockstate,
 
   source_map:  &'a BlockstateSourceMap,
   json:        &'a Parse<Json>,
@@ -33,7 +23,7 @@ pub fn validate(
   diagnostics: &mut Diagnostics,
 ) {
   let blockstate = db.parse_blockstate(file_id);
-  let mut validator = Validator { db, model: &blockstate, file_id, source_map, json, diagnostics };
+  let mut validator = Validator { blockstate: &blockstate, source_map, json, diagnostics };
   validator.validate_blockstate();
 }
 
@@ -47,7 +37,7 @@ impl Validator<'_> {
     // These are all the defined properties.
     let mut all_defined = HashMap::<String, TextRange>::new();
 
-    for (id, node) in self.model.nodes.iter() {
+    for (id, node) in self.blockstate.nodes.iter() {
       match node {
         Node::Variant(variant) => {
           let syntax = self.source_map.variants[&id].to_node(&self.json);
@@ -58,10 +48,27 @@ impl Validator<'_> {
       }
     }
 
+    // FIXME:
+    let outer_span = TextRange::new(TextSize::from(0), TextSize::from(0));
+
+    if all_defined.is_empty() {
+      self.diagnostics.error(outer_span, "missing 'normal' variant");
+    } else if all_defined.len() > 1 {
+      // We only want to check multivariant if there are multiple properties
+      // defined.
+      self.validate_multivariant(&all_defined, outer_span);
+    }
+  }
+
+  fn validate_multivariant(
+    &mut self,
+    all_defined: &HashMap<String, TextRange>,
+    outer_span: TextRange,
+  ) {
     // This is the inferred property map of this blockstate.
     let mut all_props = Vec::<(String, Vec<String>)>::new();
 
-    for node in self.model.nodes.values() {
+    for node in self.blockstate.nodes.values() {
       match node {
         Node::Variant(variant) => {
           let props = self.parse_prop_list(&variant.name);
@@ -84,10 +91,6 @@ impl Validator<'_> {
       }
     }
 
-    if all_props.is_empty() {
-      return;
-    }
-
     let mut indices = vec![0; all_props.len()];
 
     loop {
@@ -98,10 +101,7 @@ impl Validator<'_> {
       let prop_str = props.join(",");
 
       if !all_defined.contains_key(&prop_str) {
-        self.diagnostics.warn(
-          TextRange::new(TextSize::from(0), TextSize::from(0)),
-          format!("missing variant for `{}`", prop_str),
-        );
+        self.diagnostics.error(outer_span, format!("missing variant for `{}`", prop_str));
       }
 
       let mut i = 0;
