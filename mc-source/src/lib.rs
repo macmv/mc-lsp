@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 
 use mc_syntax::Parse;
 
@@ -35,27 +35,12 @@ pub trait SourceDatabase: std::fmt::Debug {
   fn parse_json(&self, file_id: FileId) -> Parse<mc_syntax::Json>;
 }
 
-pub trait FileType {
-  type Source;
-
-  fn parse(text: &str) -> Parse<Self::Source>;
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FileId(u32);
 
 impl FileId {
   /// DO NOT USE THIS! Its just for unit tests.
   pub fn new_raw(id: u32) -> Self { FileId(id) }
-}
-
-#[derive(Default, Debug)]
-pub struct Json;
-
-impl FileType for Json {
-  type Source = mc_syntax::Json;
-
-  fn parse(text: &str) -> Parse<Self::Source> { mc_syntax::Json::parse(text) }
 }
 
 #[derive(Default, Debug)]
@@ -81,11 +66,7 @@ impl File {
   pub fn path(&self) -> Option<ResolvedPath> { ResolvedPath::parse(&self.path) }
 }
 
-fn parse<T: FileType>(db: &dyn SourceDatabase, file_id: FileId) -> Parse<T::Source> {
+fn parse_json(db: &dyn SourceDatabase, file_id: FileId) -> Parse<mc_syntax::Json> {
   let text = db.file_text(file_id);
-  T::parse(&text)
-}
-
-fn parse_json(db: &dyn SourceDatabase, file_id: FileId) -> Parse<<Json as FileType>::Source> {
-  parse::<Json>(db, file_id)
+  mc_syntax::Json::parse(&text)
 }
