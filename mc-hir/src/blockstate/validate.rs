@@ -84,6 +84,40 @@ impl Validator<'_> {
         .hint("use 'normal' instead");
       return;
     }
+
+    for prop in s.split(',') {
+      if !prop.contains('=') {
+        self
+          .diagnostics
+          .error(&syntax, format!("invalid property `{}`", prop))
+          .hint("properties should be in the form `key=value`");
+        continue;
+      }
+
+      let key = prop.split('=').next().unwrap();
+      if key.is_empty() {
+        self.diagnostics.error(&syntax, format!("invalid empty property key`"));
+      }
+
+      if !key.chars().all(|c| matches!(c, 'a'..='z' | '_')) {
+        self
+          .diagnostics
+          .error(&syntax, format!("invalid property key `{}`", key))
+          .hint("property keys may only contain lowercase letters");
+      }
+
+      let value = prop.split('=').nth(1).unwrap();
+      if value.is_empty() {
+        self.diagnostics.error(&syntax, format!("invalid empty property value"));
+      }
+
+      if !value.chars().all(|c| matches!(c, 'a'..='z' | '0'..='9' | '_')) {
+        self
+          .diagnostics
+          .error(&syntax, format!("invalid property value `{}`", value))
+          .hint("property values may only contain lowercase letters or numbers");
+      }
+    }
   }
 
   /// Parses the property list. Ignores any invalid properties.
