@@ -63,7 +63,8 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   const exec: Executable = {
-    command: "/home/macmv/Desktop/programming/rust/mclsp/target/release/mc-lsp",
+    // The language server is bundled in the extension.
+    command: context.asAbsolutePath("mc-lsp"),
     transport: TransportKind.stdio,
   };
 

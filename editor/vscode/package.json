@@ -32,7 +32,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "cp ../../target/release/mc-lsp . && tsc -p ./",
     "compile-preview": "cd preview; webpack",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
