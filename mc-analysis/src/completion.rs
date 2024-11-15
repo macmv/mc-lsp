@@ -49,7 +49,7 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
     model::Node::Parent(_) => {
       for n in db.workspace().namespaces.iter() {
         for f in n.files.iter() {
-          if let Some(ResolvedPath::Model(path)) = f.path() {
+          if let Some(ResolvedPath::Model(path)) = f.resolved_path() {
             completer.complete_path(&path.path, CompletionKind::Model);
           }
         }
@@ -59,7 +59,7 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
     model::Node::TextureDef(_) => {
       for n in db.workspace().namespaces.iter() {
         for f in n.files.iter() {
-          if let Some(ResolvedPath::Texture(path)) = f.path() {
+          if let Some(ResolvedPath::Texture(path)) = f.resolved_path() {
             completer.complete_path(&path.path, CompletionKind::Texture);
           }
         }

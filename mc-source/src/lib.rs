@@ -73,7 +73,7 @@ pub struct File {
 }
 
 impl File {
-  pub fn path(&self) -> Option<ResolvedPath> { ResolvedPath::parse(&self.path) }
+  pub fn resolved_path(&self) -> Option<ResolvedPath> { ResolvedPath::parse(&self.path) }
 }
 
 fn parse_json(db: &dyn SourceDatabase, file_id: FileId) -> Parse<mc_syntax::Json> {

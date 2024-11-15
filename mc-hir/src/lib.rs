@@ -50,7 +50,7 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
   let search_path = ResolvedPath::Model(path);
 
   namespace.files.iter().find_map(|f| {
-    if f.path().as_ref() == Some(&search_path) {
+    if f.resolved_path().as_ref() == Some(&search_path) {
       Some(f.id)
     } else {
       None
@@ -134,7 +134,7 @@ fn def_at_node(db: &dyn HirDatabase, file: FileId, node: model::NodeId) -> Optio
       let workspace = db.workspace();
       let file = workspace.namespaces.iter().find_map(|n| {
         n.files.iter().find_map(|f| {
-          if f.path().as_ref() == Some(&search_path) {
+          if f.resolved_path().as_ref() == Some(&search_path) {
             Some(f.id)
           } else {
             None

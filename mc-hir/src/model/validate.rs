@@ -66,7 +66,7 @@ impl Validator<'_> {
       let workspace = self.db.workspace();
       let file = workspace.namespaces.iter().find_map(|n| {
         n.files.iter().find_map(|f| {
-          if f.path().as_ref() == Some(&search_path) {
+          if f.resolved_path().as_ref() == Some(&search_path) {
             Some(f.id)
           } else {
             None
