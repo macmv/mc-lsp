@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { readFileSync } from "fs";
 import { ExtensionContext, Uri, WebviewPanel } from "vscode";
 
 export class Preview {
