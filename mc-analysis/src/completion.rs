@@ -43,7 +43,7 @@ pub fn completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
 }
 
 pub fn model_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Completion> {
-  let Some(node) = db.node_at_index(pos) else { return vec![] };
+  let Some(node) = db.model_node_at_index(pos) else { return vec![] };
   let model = db.parse_model(pos.file);
 
   let mut completer = Completer::new_model(db, pos, &model);
@@ -119,7 +119,7 @@ pub fn blockstate_completions(db: &dyn HirDatabase, pos: FileLocation) -> Vec<Co
 
 impl Completer {
   pub fn new_model(db: &dyn HirDatabase, pos: FileLocation, model: &model::Model) -> Completer {
-    let node = db.node_at_index(pos).unwrap();
+    let node = db.model_node_at_index(pos).unwrap();
     let mut current_path = None;
 
     let ast = db.parse_json(pos.file);

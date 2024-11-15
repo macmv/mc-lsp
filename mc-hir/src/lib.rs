@@ -47,9 +47,9 @@ pub trait HirDatabase: SourceDatabase {
   #[salsa::invoke(model::ancestry)]
   fn model_ancestry(&self, file_id: FileId) -> Vec<FileId>;
 
-  fn def_at_index(&self, pos: FileLocation) -> Option<FileRange>;
-  fn node_at_index(&self, pos: FileLocation) -> Option<model::NodeId>;
-  fn def_at_node(&self, file: FileId, node: model::NodeId) -> Option<FileRange>;
+  fn model_def_at_index(&self, pos: FileLocation) -> Option<FileRange>;
+  fn model_node_at_index(&self, pos: FileLocation) -> Option<model::NodeId>;
+  fn model_def_at_node(&self, file: FileId, node: model::NodeId) -> Option<FileRange>;
 
   fn blockstate_node_at_index(&self, pos: FileLocation) -> Option<blockstate::NodeId>;
 }
@@ -76,7 +76,7 @@ fn lookup_model(db: &dyn HirDatabase, path: ModelPath) -> Option<FileId> {
   })
 }
 
-fn node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<model::NodeId> {
+fn model_node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<model::NodeId> {
   let ast = db.parse_json(pos.file);
   let (_, source_map, _) = db.parse_model_with_source_map(pos.file);
 
@@ -129,13 +129,13 @@ fn blockstate_node_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<b
   })
 }
 
-fn def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
-  let node = db.node_at_index(pos)?;
+fn model_def_at_index(db: &dyn HirDatabase, pos: FileLocation) -> Option<FileRange> {
+  let node = db.model_node_at_index(pos)?;
 
-  db.def_at_node(pos.file, node)
+  db.model_def_at_node(pos.file, node)
 }
 
-fn def_at_node(db: &dyn HirDatabase, file: FileId, node: model::NodeId) -> Option<FileRange> {
+fn model_def_at_node(db: &dyn HirDatabase, file: FileId, node: model::NodeId) -> Option<FileRange> {
   let model = db.parse_model(file);
 
   match model.nodes[node] {
