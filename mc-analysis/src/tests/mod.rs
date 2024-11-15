@@ -6,12 +6,12 @@ use crate::database::RootDatabase;
 
 mod completion;
 
+const BLOCK_MODEL: FileId = FileId::new_raw(0);
+const FOO_MODEL: FileId = FileId::new_raw(1);
+const BAR_TEXTURE: FileId = FileId::new_raw(2);
+
 pub fn test_db() -> RootDatabase {
   let mut db = RootDatabase::default();
-
-  const BLOCK_MODEL: FileId = FileId::new_raw(0);
-  const FOO_MODEL: FileId = FileId::new_raw(1);
-  const BAR_TEXTURE: FileId = FileId::new_raw(2);
 
   db.set_workspace(Arc::new(Workspace {
     namespaces: vec![
