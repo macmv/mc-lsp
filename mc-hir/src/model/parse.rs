@@ -20,7 +20,7 @@ pub fn parse(
   diagnostics: &mut Diagnostics,
   json: &Json,
 ) {
-  let mut parser = ModelParser { parser: Parser::new(diagnostics), model, source_map };
+  let mut parser = ModelParser { parser: Parser::new(json, diagnostics), model, source_map };
   parser.parse_root(json);
 }
 

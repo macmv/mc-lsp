@@ -19,7 +19,8 @@ pub fn parse(
   diagnostics: &mut Diagnostics,
   json: &Json,
 ) {
-  let mut parser = BlockstateParser { parser: Parser::new(diagnostics), blockstate, source_map };
+  let mut parser =
+    BlockstateParser { parser: Parser::new(json, diagnostics), blockstate, source_map };
   parser.parse_root(json);
 }
 
