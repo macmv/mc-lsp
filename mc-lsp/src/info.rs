@@ -29,6 +29,8 @@ pub fn server_capabilities() -> lsp_types::ServerCapabilities {
 
     hover_provider: Some(lsp_types::HoverProviderCapability::Simple(true)),
 
+    code_action_provider: Some(lsp_types::CodeActionProviderCapability::Simple(true)),
+
     ..Default::default()
   }
 }

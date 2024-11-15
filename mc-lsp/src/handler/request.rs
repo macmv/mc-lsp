@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path, sync::Arc};
+use std::{collections::HashMap, error::Error, path::Path, sync::Arc};
 
 use line_index::LineIndex;
 use lsp_types::{SemanticTokenModifier, SemanticTokenType};
@@ -182,6 +182,58 @@ pub fn handle_hover(
     })),
   }))
   */
+}
+
+pub fn handle_code_action(
+  snap: GlobalStateSnapshot,
+  params: lsp_types::CodeActionParams,
+) -> Result<Option<Vec<lsp_types::CodeActionOrCommand>>, Box<dyn Error>> {
+  let path = Path::new(params.text_document.uri.path());
+  if let Some(file) = snap.files.read().get_absolute(path) {
+    let diagnostics = snap.analysis.diagnostics(file)?;
+    let converter = LspConverter::new(&snap, file)?;
+
+    let index = snap.analysis.line_index(file)?;
+    let offset = match index.offset(line_index::LineCol {
+      line: params.range.start.line,
+      col:  params.range.start.character,
+    }) {
+      Some(i) => i,
+      None => return Err("position not found".into()),
+    };
+
+    Ok(Some(
+      diagnostics
+        .iter()
+        .filter_map(|d| {
+          if !d.span.contains(offset) {
+            return None;
+          }
+
+          d.suggestion.as_ref().map(|s| {
+            let mut changes = HashMap::new();
+            changes.insert(
+              params.text_document.uri.clone(),
+              vec![lsp_types::TextEdit {
+                range:    converter.range(s.range),
+                new_text: s.replace.clone(),
+              }],
+            );
+
+            lsp_types::CodeActionOrCommand::CodeAction(lsp_types::CodeAction {
+              title: s.title.clone(),
+              kind: Some(lsp_types::CodeActionKind::QUICKFIX),
+              edit: Some(lsp_types::WorkspaceEdit { changes: Some(changes), ..Default::default() }),
+              // FIXME: Include `diagnostics` in here.
+              ..Default::default()
+            })
+          })
+        })
+        .collect(),
+    ))
+  } else {
+    Ok(None)
+  }
 }
 
 pub fn handle_canonical_model(

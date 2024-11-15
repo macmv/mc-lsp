@@ -246,6 +246,7 @@ impl GlobalState {
       .on::<lsp_request::DocumentHighlightRequest>(request::handle_document_highlight)
       .on::<lsp_request::HoverRequest>(request::handle_hover)
       .on::<lsp_request::Completion>(request::handle_completion)
+      .on::<lsp_request::CodeActionRequest>(request::handle_code_action)
       // Custom messages
       .on::<handler::CanonicalModel>(request::handle_canonical_model);
   }

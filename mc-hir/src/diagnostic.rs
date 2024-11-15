@@ -9,10 +9,19 @@ pub struct Diagnostics {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Diagnostic {
-  pub span:     TextRange,
-  pub message:  String,
-  pub severity: Severity,
-  pub hints:    Vec<String>,
+  pub span:       TextRange,
+  pub message:    String,
+  pub severity:   Severity,
+  pub hints:      Vec<String>,
+  pub suggestion: Option<Suggestion>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Suggestion {
+  pub title: String,
+
+  pub range:   TextRange,
+  pub replace: String,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -47,7 +56,7 @@ impl Diagnostics {
 
 impl Diagnostic {
   pub fn new(span: TextRange, message: String, severity: Severity) -> Self {
-    Diagnostic { span, message, severity, hints: vec![] }
+    Diagnostic { span, message, severity, hints: vec![], suggestion: None }
   }
 
   pub fn new_error(span: TextRange, message: String) -> Self {
