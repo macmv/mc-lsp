@@ -1,5 +1,5 @@
 use crate::{diagnostic::Diagnostics, parse::Parser};
-use mc_source::{ModelPath, Path};
+use la_arena::RawIdx;
 use mc_syntax::{
   ast::{self, AstNode},
   AstPtr, Json,
@@ -50,7 +50,7 @@ impl BlockstateParser<'_> {
   fn parse_variant(&mut self, key: String, e: ast::Value) -> Option<Variant> {
     let mut variant = Variant {
       name:   key,
-      model:  ModelPath { path: Path::new() },
+      model:  NodeId::from_raw(RawIdx::from_u32(0)),
       x:      None,
       y:      None,
       uvlock: None,
@@ -72,12 +72,12 @@ impl BlockstateParser<'_> {
     Some(variant)
   }
 
-  fn parse_path(&mut self, p: ast::Value) -> Option<ModelPath> {
+  fn parse_path(&mut self, p: ast::Value) -> Option<NodeId> {
     let Some(path) = p.as_str() else {
       self.parser.diagnostics.error(p.syntax(), "expected string");
       return None;
     };
-    Some(ModelPath { path: path.parse().ok()? })
+    Some(self.alloc(p, Model { name: path.parse().ok()? }))
   }
 
   fn alloc<T: BlockstateNode>(&mut self, elem: T::Ast, node: T) -> NodeId {
@@ -98,6 +98,17 @@ impl BlockstateNode for Variant {
     let id = parser.blockstate.nodes.alloc(Node::Variant(self));
     parser.source_map.variants.insert(id, AstPtr::new(&elem));
     parser.source_map.ast_variants.insert(AstPtr::new(&elem), id);
+    id
+  }
+}
+
+impl BlockstateNode for Model {
+  type Ast = ast::Value;
+
+  fn alloc(self, elem: &Self::Ast, parser: &mut BlockstateParser) -> NodeId {
+    let id = parser.blockstate.nodes.alloc(Node::Model(self));
+    parser.source_map.models.insert(id, AstPtr::new(&elem));
+    parser.source_map.ast_models.insert(AstPtr::new(&elem), id);
     id
   }
 }

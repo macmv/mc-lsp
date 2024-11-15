@@ -4,7 +4,7 @@ mod parse;
 mod validate;
 
 use la_arena::{Arena, Idx};
-use mc_source::{FileId, ModelPath};
+use mc_source::FileId;
 use mc_syntax::{ast, AstPtr};
 
 use crate::{diagnostic::Diagnostics, model::F64Eq, HirDatabase};
@@ -25,6 +25,7 @@ pub enum Node {
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct BlockstateSourceMap {
   pub ast_variants: HashMap<AstPtr<ast::Element>, NodeId>,
+  pub ast_models:   HashMap<AstPtr<ast::Value>, NodeId>,
 
   pub variants: HashMap<NodeId, AstPtr<ast::Element>>,
   pub models:   HashMap<NodeId, AstPtr<ast::Value>>,
@@ -33,7 +34,7 @@ pub struct BlockstateSourceMap {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Variant {
   pub name:   String,
-  pub model:  ModelPath,
+  pub model:  NodeId,
   pub x:      Option<F64Eq>,
   pub y:      Option<F64Eq>,
   pub uvlock: Option<bool>,
