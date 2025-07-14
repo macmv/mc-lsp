@@ -21,7 +21,15 @@ pub fn add_client_path(workspace: &mut Workspace, files: &mut Files, path: &path
 }
 
 fn discover_assets_in(workspace: &mut Workspace, files: &mut Files, path: &path::Path) {
-  for entry in std::fs::read_dir(path).unwrap() {
+  let dir = match std::fs::read_dir(path) {
+    Ok(dir) => dir,
+    Err(e) => {
+      error!("failed to read directory {}: {}", path.display(), e);
+      return;
+    }
+  };
+
+  for entry in dir {
     let name = entry.unwrap().file_name();
 
     let rel_path = mc_source::Path::new_namespace(name.to_string_lossy().to_string());
