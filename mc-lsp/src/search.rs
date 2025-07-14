@@ -11,7 +11,9 @@ pub fn discover_workspace(files: &mut Files) -> Workspace {
 
   let mut workspace = Workspace { namespaces: vec![] };
 
-  discover_assets_in(&mut workspace, files, path::Path::new("./src/main/resources/assets"));
+  // FIXME: We shouldn't index files here! We should index them when they're
+  // opened.
+  discover_assets_in(&mut workspace, files, path::Path::new("./common/src/main/resources/assets"));
 
   workspace
 }
