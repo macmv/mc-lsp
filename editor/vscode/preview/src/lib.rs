@@ -111,6 +111,13 @@ fn start() -> Result<(), JsValue> {
     });
   }
 
+  {
+    let preview = preview.clone();
+    event::on_scroll(move |x, y| {
+      preview.borrow_mut().scroll(x, y);
+    });
+  }
+
   Ok(())
 }
 
@@ -142,6 +149,10 @@ impl Preview {
 
       self.rotation_pitch = self.rotation_pitch.clamp(-MAX_PITCH, MAX_PITCH);
     }
+  }
+  pub fn scroll(&mut self, _: f32, y: f32) {
+    self.zoom *= 2.0_f32.powf(y * 0.01);
+    self.zoom = self.zoom.clamp(0.1, 10.0);
   }
   pub fn mouse_down(&mut self) { self.mouse_down = true; }
   pub fn mouse_up(&mut self) { self.mouse_down = false; }

@@ -29,6 +29,16 @@ extern "C" {
   type MouseUp;
 }
 
+#[wasm_bindgen]
+extern "C" {
+  type Wheel;
+
+  #[wasm_bindgen(method, getter)]
+  fn deltaX(this: &Wheel) -> f32;
+  #[wasm_bindgen(method, getter)]
+  fn deltaY(this: &Wheel) -> f32;
+}
+
 #[derive(Deserialize, Debug)]
 pub enum Message {
   RenderModel { model: mc_message::Model },
@@ -83,6 +93,18 @@ pub fn on_mouse_up(mut f: impl FnMut() + 'static) {
   let window = web_sys::window().unwrap();
 
   window.set_onmouseup(Some(closure.as_ref().unchecked_ref()));
+
+  closure.forget();
+}
+
+pub fn on_scroll(mut f: impl FnMut(f32, f32) + 'static) {
+  let closure = Closure::wrap(Box::new(move |wheel: Wheel| {
+    f(wheel.deltaX(), wheel.deltaY());
+  }) as Box<dyn FnMut(Wheel)>);
+
+  let window = web_sys::window().unwrap();
+
+  window.set_onwheel(Some(closure.as_ref().unchecked_ref()));
 
   closure.forget();
 }
