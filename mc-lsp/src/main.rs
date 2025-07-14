@@ -37,12 +37,8 @@ fn run() -> Result<(), Box<dyn Error>> {
       return Err(e.into());
     }
   };
-  // FIXME: Need to not have a single root.
-  #[allow(deprecated)]
-  let lsp_types::InitializeParams { root_uri, .. } =
-    serde_json::from_value::<lsp_types::InitializeParams>(initialize_params)?;
-
-  info!("starting LSP server in project root: {:?}", root_uri);
+  // TODO: Check client capabilities.
+  serde_json::from_value::<lsp_types::InitializeParams>(initialize_params)?;
 
   let server_capabilities = info::server_capabilities();
 
